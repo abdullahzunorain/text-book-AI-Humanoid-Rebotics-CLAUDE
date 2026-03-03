@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: hack-i-copilot-api
+    name: textbook-ai-robotics-api
     runtime: python
     rootDir: backend
     buildCommand: pip install -r requirements.txt

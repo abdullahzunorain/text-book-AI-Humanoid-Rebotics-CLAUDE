@@ -2,7 +2,7 @@
 
 An interactive online textbook covering Physical AI, ROS 2, and humanoid robotics — with an embedded RAG-powered AI study companion chatbot.
 
-**Live Site**: [https://abdullahzunorain.github.io/Hack-I-Copilot/](https://abdullahzunorain.github.io/Hack-I-Copilot/)
+**Live Site**: [https://abdullahzunorain.github.io/text-book-AI-Humanoid-Rebotics-claude/](https://abdullahzunorain.github.io/text-book-AI-Humanoid-Rebotics-claude/)
 
 ## Features
 
@@ -35,8 +35,8 @@ An interactive online textbook covering Physical AI, ROS 2, and humanoid robotic
 ### 1. Clone & Install
 
 ```bash
-git clone https://github.com/abdullahzunorain/Hack-I-Copilot.git
-cd Hack-I-Copilot
+git clone https://github.com/abdullahzunorain/text-book-AI-Humanoid-Rebotics-claude.git
+cd text-book-AI-Humanoid-Rebotics-claude
 
 # Frontend
 cd website

@@ -12,9 +12,9 @@ const config: Config = {
   },
 
   url: 'https://abdullahzunorain.github.io',
-  baseUrl: '/Hack-I-Copilot/',
+  baseUrl: '/text-book-AI-Humanoid-Rebotics-claude/',
   organizationName: 'abdullahzunorain',
-  projectName: 'Hack-I-Copilot',
+  projectName: 'text-book-AI-Humanoid-Rebotics-claude',
   trailingSlash: false,
 
   onBrokenLinks: 'throw',
@@ -35,7 +35,7 @@ const config: Config = {
         docs: {
           sidebarPath: './sidebars.ts',
           editUrl:
-            'https://github.com/abdullahzunorain/Hack-I-Copilot/tree/main/website/',
+            'https://github.com/abdullahzunorain/text-book-AI-Humanoid-Rebotics-claude/tree/main/website/',
         },
         blog: false, // Disabled — not needed for MVP
         theme: {
@@ -69,7 +69,7 @@ const config: Config = {
           label: 'Textbook',
         },
         {
-          href: 'https://github.com/abdullahzunorain/Hack-I-Copilot',
+          href: 'https://github.com/abdullahzunorain/text-book-AI-Humanoid-Rebotics-claude',
           label: 'GitHub',
           position: 'right',
         },
@@ -96,7 +96,7 @@ const config: Config = {
           items: [
             {
               label: 'GitHub',
-              href: 'https://github.com/abdullahzunorain/Hack-I-Copilot',
+              href: 'https://github.com/abdullahzunorain/text-book-AI-Humanoid-Rebotics-claude',
             },
           ],
         },
