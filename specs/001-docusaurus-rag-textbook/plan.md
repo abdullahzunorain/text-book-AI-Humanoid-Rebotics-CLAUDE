@@ -10,20 +10,20 @@ Build and deploy a Docusaurus v3 static textbook (Introduction + Module 1: ROS 2
 ## Technical Context
 
 **Frontend Language/Version**: TypeScript/JSX (Node.js 18+, React 18)  
-**Backend Language/Version**: Python 3.11+  
+**Backend Language/Version**: Python 3.12+ (managed via uv)  
 **Primary Dependencies**:  
   - Frontend: Docusaurus 3.x, React 18, MDX  
-  - Backend: FastAPI, uvicorn, openai (Python SDK), qdrant-client  
+  - Backend: FastAPI, uvicorn, google-genai (native SDK), qdrant-client  
 **Storage**: Qdrant Cloud (free tier) — vector database only; no relational DB  
 **Testing**: pytest (backend contract tests), Docusaurus build check (frontend)  
-**Target Platform**: Web (GitHub Pages for static site, Railway or Vercel for API)  
+**Target Platform**: Web (GitHub Pages for static site, Render free tier for API)  
 **Project Type**: Web application (static frontend + stateless API backend)  
 **Performance Goals**: Pages load <3s on 4G; chatbot responds <5s (p95)  
 **Constraints**: Stateless backend (no sessions/DB), 3 env vars only (GEMINI_API_KEY, QDRANT_URL, QDRANT_API_KEY), max 2 services (static site + API)  
-**Scale/Scope**: 7 pages, 1 API endpoint, 1 Qdrant collection, ~30–50 knowledge chunks  
-**AI Model**: Gemini 2.0 Flash via OpenAI Python SDK (chat.completions pointed at Gemini endpoint)  
-**Embeddings**: models/text-embedding-004 (Gemini)  
-**Vector DB**: Qdrant Cloud free tier, collection `book_content`, chunk by H2/H3 headings (max 400 tokens), payload: text, chapter, module, page_title
+**Scale/Scope**: 7 pages, 1 API endpoint, 1 Qdrant collection, ~55 knowledge chunks  
+**AI Model**: Gemini 2.5 Flash via native Google GenAI SDK (client.models.generate_content)  
+**Embeddings**: gemini-embedding-001 (3072 dimensions)  
+**Vector DB**: Qdrant Cloud free tier, collection `book_content`, chunk by H2/H3 headings (max 400 tokens), payload: text, chapter, module, page_title, 3072-dim vectors, COSINE distance
 
 ## Constitution Check
 
@@ -35,7 +35,7 @@ Build and deploy a Docusaurus v3 static textbook (Introduction + Module 1: ROS 2
 | II | No Auth/Personalization/Translation | ✅ PASS | FR-006, FR-013 explicitly forbid auth; no i18n; no user accounts |
 | III | Content Scope (Intro + Module 1) | ✅ PASS | Exactly 7 pages: home + intro + 5 ROS 2 chapters |
 | IV | Chatbot Omnipresence | ✅ PASS | Swizzled DocItem injects ChatbotWidget on every page; FR-009 |
-| V | Deployability | ✅ PASS | GitHub Pages (static) + Railway/Vercel (API) — deploy in minutes |
+| V | Deployability | ✅ PASS | GitHub Pages (static) + Render free tier (API) — deploy in minutes |
 | VI | No Over-Engineering | ✅ PASS | 1 FastAPI route, 1 service file, 1 indexing script; no ORM; ≤3 services |
 
 **Gate Result**: ✅ ALL PASS — proceed to Phase 0.
@@ -76,13 +76,15 @@ website/                          # Docusaurus 3 project root
 │       └── 05-urdf.md
 ├── src/
 │   ├── components/
-│   │   ├── ChatbotWidget.jsx     # Floating chat UI, calls /api/chat
-│   │   └── SelectedTextHandler.jsx  # Text selection → chatbot
-│   ├── css/
+│   │   ├── ChatbotWidget.tsx     # Floating chat UI, calls /api/chat
+│   │   ├── SelectedTextHandler.tsx  # Text selection → chatbot
 │   │   └── chatbot.css           # Chatbot widget styles
+│   ├── css/
+│   │   └── custom.css            # Site-wide custom styles
 │   ├── theme/
 │   │   └── DocItem/
-│   │       └── index.tsx         # Swizzled DocItem wrapper
+│   │       └── Layout/
+│   │           └── index.tsx     # Swizzled DocItem/Layout wrapper
 │   └── pages/
 │       └── index.tsx             # Home/landing page
 └── .env.example                  # REACT_APP_API_URL placeholder
@@ -91,9 +93,10 @@ backend/                          # FastAPI backend
 ├── main.py                       # FastAPI app, CORS, POST /api/chat
 ├── rag_service.py                # embed + retrieve + generate
 ├── index_content.py              # Chunk markdown → embed → upsert Qdrant
-├── requirements.txt              # FastAPI, uvicorn, openai, qdrant-client
+├── requirements.txt              # FastAPI, uvicorn, google-genai, qdrant-client
+├── pyproject.toml                # uv project config
 ├── .env.example                  # GEMINI_API_KEY, QDRANT_URL, QDRANT_API_KEY
-├── Procfile                      # Railway deployment
+├── render.yaml                   # Render deployment (at repo root)
 └── tests/
     └── test_chat_api.py          # Contract tests for POST /api/chat
 ```

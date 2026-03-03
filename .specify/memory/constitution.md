@@ -2,8 +2,9 @@
   SYNC IMPACT REPORT
   ==================
   
-  VERSION CHANGE: 0.0.0 (template) → 1.0.0 (initial ratification)
-  RATIONALE: First official constitution for Physical AI Textbook MVP—major governance adoption
+  VERSION CHANGE: 0.0.0 (template) → 1.0.0 (initial ratification) → 1.1.0 (deployment gate amendment)
+  RATIONALE: First official constitution for Physical AI Textbook MVP—major governance adoption.
+  v1.1.0: Amended deployment gates #3 (analytics deferred to post-MVP) and #4 (accessibility changed to best-effort WCAG) to align with MVP-First principle and hackathon timeline.
   
   PRINCIPLES ADDED: 6
   - I.   MVP-First (Minimal Scope)
@@ -95,8 +96,8 @@ Keep the backend stateless and minimal. Keep the frontend simple. Use off-the-sh
 
 1. **Content Complete**: All sections in Intro + Module 1 written with code examples, diagrams, and clear learning outcomes
 2. **Chatbot Tested**: Selected-text queries work on 5+ sample queries per page
-3. **SEO & Analytics**: Basic Open Graph meta tags for book pages; simple analytics (Google Analytics or equivalent) to track user engagement
-4. **Accessibility**: WCAG 2.1 Level AA compliance (alt text, keyboard navigation, heading hierarchy)
+3. **SEO & Analytics**: Basic Open Graph meta tags for book pages. Analytics (Google Analytics or equivalent) deferred to post-MVP — not required for hackathon deployment gate.
+4. **Accessibility**: Best-effort WCAG 2.1 compliance (alt text, keyboard navigation for chatbot, heading hierarchy). Full Level AA audit deferred to post-MVP.
 5. **Mobile-Responsive**: Book and chatbot widget render correctly on mobile, tablet, desktop
 
 ### Testing & Quality Assurance
@@ -142,4 +143,4 @@ Keep the backend stateless and minimal. Keep the frontend simple. Use off-the-sh
 - [ ] All required standards met (tests, mobile-responsive, <3s load time)
 - [ ] Deployment is reversible (rollback plan in place)
 
-**Version**: 1.0.0 | **Ratified**: 2026-03-03 | **Last Amended**: 2026-03-03
+**Version**: 1.1.0 | **Ratified**: 2026-03-03 | **Last Amended**: 2026-03-04

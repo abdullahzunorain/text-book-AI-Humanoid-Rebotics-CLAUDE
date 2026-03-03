@@ -36,6 +36,17 @@ export default function ChatbotWidget(): JSX.Element {
     }
   }, [isOpen]);
 
+  // Keyboard accessibility: Escape key closes the panel
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
   // Listen for selected text events (US3)
   useEffect(() => {
     const handleSelection = (e: Event) => {
@@ -126,7 +137,7 @@ export default function ChatbotWidget(): JSX.Element {
 
       {/* Chat panel */}
       {isOpen && (
-        <div className="chatbot-panel">
+        <div className="chatbot-panel" role="dialog" aria-modal="true" aria-label="AI Study Companion chat">
           <div className="chatbot-header">
             <span className="chatbot-header-title">🤖 AI Study Companion</span>
             <button
