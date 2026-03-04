@@ -6,7 +6,7 @@ interface PopupPosition {
   left: number;
 }
 
-export default function SelectedTextHandler(): JSX.Element | null {
+export default function SelectedTextHandler(): React.JSX.Element | null {
   const [selectedText, setSelectedText] = useState('');
   const [showPopup, setShowPopup] = useState(false);
   const [position, setPosition] = useState<PopupPosition>({ top: 0, left: 0 });

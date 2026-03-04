@@ -89,6 +89,18 @@ const config: Config = {
               label: 'Module 1: ROS 2',
               to: '/docs/module1-ros2/architecture',
             },
+            {
+              label: 'Module 2: Simulation',
+              to: '/docs/module2-simulation/chapter1-gazebo-basics',
+            },
+            {
+              label: 'Module 3: NVIDIA Isaac',
+              to: '/docs/module3-isaac/chapter1-isaac-sim-intro',
+            },
+            {
+              label: 'Module 4: VLA Models',
+              to: '/docs/module4-vla/chapter1-vla-intro',
+            },
           ],
         },
         {
@@ -106,7 +118,7 @@ const config: Config = {
     prism: {
       theme: prismThemes.github,
       darkTheme: prismThemes.dracula,
-      additionalLanguages: ['python', 'bash'],
+      additionalLanguages: ['python', 'bash', 'csharp', 'yaml'],
     },
   } satisfies Preset.ThemeConfig,
 };

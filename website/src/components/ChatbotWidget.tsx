@@ -8,7 +8,7 @@ interface Message {
   sources?: string[];
 }
 
-export default function ChatbotWidget(): JSX.Element {
+export default function ChatbotWidget(): React.JSX.Element {
   const { siteConfig } = useDocusaurusContext();
   const API_URL = (siteConfig.customFields?.apiUrl as string) || 'http://localhost:8000';
   const [isOpen, setIsOpen] = useState(false);

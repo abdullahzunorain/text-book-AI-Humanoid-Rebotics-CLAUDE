@@ -1,0 +1,68 @@
+/**
+ * Scoped RTL styles for Urdu translated content.
+ * Only applies within .urdu-content — no global RTL side effects.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
+
+.urdu-content {
+  direction: rtl;
+  text-align: right;
+  font-family: 'Noto Nastaliq Urdu', serif;
+  line-height: 2;
+  font-size: 1.05rem;
+}
+
+.urdu-content h1,
+.urdu-content h2,
+.urdu-content h3,
+.urdu-content h4,
+.urdu-content h5,
+.urdu-content h6 {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Code blocks stay LTR — they contain English code */
+.urdu-content pre,
+.urdu-content code {
+  direction: ltr;
+  text-align: left;
+  font-family: var(--ifm-font-family-monospace);
+}
+
+.urdu-content pre {
+  border-radius: var(--ifm-code-border-radius);
+  padding: var(--ifm-pre-padding);
+}
+
+/* Lists */
+.urdu-content ul,
+.urdu-content ol {
+  padding-right: 2rem;
+  padding-left: 0;
+}
+
+.urdu-content li {
+  text-align: right;
+  direction: rtl;
+}
+
+/* Tables */
+.urdu-content table {
+  direction: rtl;
+}
+
+.urdu-content th,
+.urdu-content td {
+  text-align: right;
+}
+
+/* Dark mode compatible — inherits Docusaurus theme colors */
+[data-theme='dark'] .urdu-content {
+  color: var(--ifm-font-color-base);
+}
+
+[data-theme='dark'] .urdu-content pre {
+  background-color: var(--ifm-pre-background);
+}

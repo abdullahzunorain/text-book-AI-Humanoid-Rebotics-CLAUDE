@@ -163,9 +163,11 @@ A content contributor working on the project opens VS Code with Claude Code. The
 
 - **FR-016**: Code blocks MUST remain in English with original syntax highlighting within Urdu-translated content
 
+- **FR-016a**: Backend MUST enforce IP-based rate limiting of 10 requests/minute per IP on `/api/translate` endpoint. Requests exceeding the limit MUST return 429 Too Many Requests with `{"detail": "Rate limit exceeded. Try again in 60 seconds."}`
+
 #### Authentication System (P3)
 
-- **FR-017**: System MUST integrate better-auth client library on frontend for signup/signin
+- **FR-017**: System MUST implement a custom `AuthProvider.tsx` using React Context for frontend auth state management (signup, signin, signout methods calling FastAPI JWT endpoints)
 
 - **FR-018**: Backend MUST implement JWT token generation and validation using FastAPI
 
@@ -236,7 +238,7 @@ CREATE INDEX idx_user_backgrounds_user_id ON user_backgrounds(user_id);
 - **FR-033**: Gemini prompt MUST include:
   - Original chapter markdown
   - User's python_level, robotics_experience, math_level, hardware_access, learning_goal
-  - Instruction: "Adapt this educational content for a learner with this background. Adjust complexity, add/remove explanations, modify examples"
+  - Instruction: "Adapt the prose of this educational content for a learner with this background. Adjust complexity, add/remove explanations. Keep ALL code examples exactly as-is — do not modify code logic, imports, or variable names."
 
 - **FR-034**: Backend MUST return `{personalized_content: string}` as markdown
 
@@ -493,200 +495,12 @@ CREATE INDEX idx_user_backgrounds_user_id ON user_backgrounds(user_id);
 
 - **SC-014**: Mobile users can read Urdu content, sign up, and personalize chapters with identical functionality to desktop
 
-## Assumptions *(if applicable)*
+## Clarifications
 
-- Gemini API (via `google-genai` SDK) is available and operational for translation and personalization requests
-- Neon Postgres database is provisioned and accessible from backend
-- Railway deployment environment supports environment variables for JWT secret, database URL, Gemini API key
-- Better-auth client library is compatible with Docusaurus 3 or React 19
-- Users accessing Urdu content have fonts installed for Urdu script (or we use web fonts)
-- Qdrant vector database remains operational for existing RAG chatbot functionality (this feature does not modify Qdrant)
-- Current Docusaurus setup with custom theme swizzling supports adding new UI components (translation button, personalize button)
-- Users understand that personalization requires an account (explained via tooltip/modal)
+### Session 2026-03-04
 
-## Dependencies *(if applicable)*
-
-- **Existing MVP1 Infrastructure**: Requires Docusaurus site, FastAPI backend, Gemini API access, and Railway deployment to be functional
-- **Neon Postgres**: New database must be provisioned before auth/personalization features can work
-- **Better-auth Library**: Must be installed and configured on frontend for auth flows
-- **JWT Library**: FastAPI backend needs `python-jose` or similar for token generation/validation
-- **BCrypt/Passlib**: For secure password hashing in `users` table
-- **Gemini API Quota**: Translation and personalization features require sufficient API quota headroom beyond existing RAG usage
-- **Claude Code Extension**: Subagents require VS Code with Claude Code extension installed for contributors (not end users)
-
-## Out of Scope *(mandatory)*
-
-The following are explicitly **NOT** included in MVP2:
-
-- **OAuth/Social Login**: Only email/password authentication. No Google/GitHub OAuth.
-- **Password Reset Flow**: Users cannot reset forgotten passwords in MVP2.
-- **Email Verification**: No email confirmation required for signup.
-- **User Profile Editing**: Users cannot update their background questionnaire after initial submission.
-- **Multi-language Support Beyond Urdu**: No translations to Arabic, French, Hindi, etc.
-- **Content Caching**: Translations and personalizations are generated fresh on each request (no Redis/caching layer).
-- **Progress Tracking**: No tracking of which chapters users have completed or quiz scores.
-- **Offline Access**: All features require internet connectivity.
-- **Admin Panel**: No UI for admins to manage users or view analytics.
-- **User-Generated Content**: Users cannot add comments, notes, or share their personalizations.
-- **Advanced Personalization**: No adaptive learning algorithms, just one-time personalization based on static background data.
-- **Chapter Versioning**: Personalized content does not persist; regenerates on each request.
-- **Rate Limiting**: No per-user rate limits on translation or personalization API calls.
-- **Analytics/Telemetry**: No tracking of which chapters are most popular or how often features are used.
-- **Mobile Apps**: Web-only; no native iOS/Android apps.
-- **Accessibility Beyond Basics**: WCAG 2.1 best-effort for Urdu RTL, but no formal accessibility audit.
-- **Content Search in Urdu**: Search only works on English content, not translated Urdu text.
-- **Real-time Collaboration**: No shared editing of personalizations or group study features.
-
-## Non-Functional Requirements *(if applicable)*
-
-### Performance
-
-- Urdu translation API response time: < 3 seconds (p95)
-- Personalization API response time: < 5 seconds (p95)
-- Signup flow completion: < 1 second for DB write
-- JWT token validation: < 50ms per request
-- Page load time for new chapters: < 2 seconds on 4G connection
-
-### Security
-
-- Passwords MUST be hashed using bcrypt with cost factor 12+
-- JWT tokens MUST use HS256 algorithm with secret key (min 256 bits)
-- JWT tokens MUST expire after 7 days
-- HTTP-only cookies MUST be used for token storage (no localStorage)
-- All API endpoints MUST validate and sanitize user input
-- Email addresses MUST be validated against RFC 5322 format
-- SQL queries MUST use parameterized statements (no raw SQL injection risk)
-
-### Usability
-
-- RTL layout for Urdu MUST use `direction: rtl` CSS and Noto Nastaliq Urdu or similar web font
-- Urdu button placement: Top-right of chapter content, always visible above fold
-- Personalize button placement: Below chapter title, only visible to authenticated users
-- Dark mode compatibility: Translation and auth UI MUST work in Docusaurus dark theme
-- Mobile responsive: All new UI components MUST work on iOS Safari and Chrome Android (viewport 375px - 428px)
-- Loading states: Translation and personalization MUST show spinner during API calls
-- Error messages: User-friendly (not technical stack traces)
-
-### Reliability
-
-- Database connection pooling with max 20 connections
-- Graceful degradation: If Gemini API fails, show error toast but don't crash page
-- Auth token refresh: If JWT expires mid-session, redirect to signin with message
-- Idempotent operations: Signing up with same email twice returns 400, doesn't create duplicate
-
-### Maintainability
-
-- All new backend routes MUST include OpenAPI/FastAPI docstrings
-- All database migrations MUST be versioned SQL scripts in `backend/migrations/`
-- Subagent definitions MUST include version numbers and update dates
-- Code examples in chapters MUST be tested and confirmed working before merging
-- Frontend components MUST use TypeScript with strict type checking
-
-## Risks and Mitigations *(if applicable)*
-
-### Risk 1: Gemini API Cost Overrun
-**Impact**: Translation and personalization make 2-3 additional Gemini API calls per user interaction. With 1000 DAU, this could exceed free tier quotas.
-**Mitigation**: Implement request logging to monitor API usage. Set up budget alerts. Cache common translations (later sprint). Consider rate limiting per user (1 translation + 1 personalization per minute).
-
-### Risk 2: Urdu Translation Quality
-**Impact**: Gemini may produce grammatically correct but contextually inaccurate Urdu for technical robotics terms.
-**Mitigation**: Add post-translation review step for first 20 chapters. Maintain a glossary of technical terms (ROS, Gazebo, VLA) with approved Urdu translations sent in Gemini prompt. Include disclaimer: "AI-translated content, report errors via GitHub Issues."
-
-### Risk 3: Database Schema Changes
-**Impact**: Adding auth tables to production requires migration. Downtime or data loss risk if not handled correctly.
-**Mitigation**: Test migrations in staging environment. Use `CREATE TABLE IF NOT EXISTS` for safety. Export full DB backup before migration. Plan migration during low-traffic window.
-
-### Risk 4: JWT Security
-**Impact**: If JWT secret key is leaked, attackers can forge tokens and impersonate users.
-**Mitigation**: Store JWT secret in environment variable, never commit to Git. Rotate secret quarterly. Use HTTP-only cookies to prevent XSS token theft. Log all failed authentication attempts.
-
-### Risk 5: Better-auth Frontend Integration
-**Impact**: Better-auth may have compatibility issues with Docusaurus 3 or React 19.
-**Mitigation**: Prototype integration in isolated test branch before implementation. Have fallback plan to build custom auth UI with fetch() calls to FastAPI endpoints if library doesn't work.
-
-### Risk 6: Content Creation Timeline
-**Impact**: Writing 12 high-quality chapters (7200+ words, 24 code examples) is time-intensive. May delay MVP2 launch.
-**Mitigation**: Use `content-writer` and `code-example-generator` subagents to accelerate drafting. Parallelize: assign 1 module (4 chapters) per contributor. Set review checkpoints every 4 chapters instead of waiting for all 12.
-
-## File Path Manifest *(for reference)*
-
-### New Files to Create
-
-**Content Files** (12 chapters):
-```
-website/docs/module2-simulation/chapter1-gazebo-basics.md
-website/docs/module2-simulation/chapter2-gazebo-ros2-integration.md
-website/docs/module2-simulation/chapter3-unity-robotics.md
-website/docs/module2-simulation/chapter4-unity-ml-agents.md
-website/docs/module3-isaac/chapter1-isaac-sim-intro.md
-website/docs/module3-isaac/chapter2-isaac-gym.md
-website/docs/module3-isaac/chapter3-isaac-ros2-bridge.md
-website/docs/module3-isaac/chapter4-isaac-reinforcement-learning.md
-website/docs/module4-vla/chapter1-vla-intro.md
-website/docs/module4-vla/chapter2-multimodal-models.md
-website/docs/module4-vla/chapter3-action-chunking.md
-website/docs/module4-vla/chapter4-vla-robotics.md
-```
-
-**Subagent Definitions** (4 agents):
-```
-.claude/agents/content-writer.md
-.claude/agents/code-example-generator.md
-.claude/agents/urdu-translator.md
-.claude/agents/content-personalizer.md
-```
-
-**Backend Files** (API routes + DB):
-```
-backend/routes/translate.py
-backend/routes/auth.py
-backend/routes/personalize.py
-backend/models/user.py
-backend/models/user_background.py
-backend/migrations/001_create_auth_tables.sql
-backend/db.py (database connection pool)
-backend/auth_utils.py (JWT helpers)
-```
-
-**Frontend Components** (UI):
-```
-website/src/components/UrduTranslateButton.tsx
-website/src/components/PersonalizeButton.tsx
-website/src/components/AuthModal.tsx
-website/src/components/BackgroundQuestionnaire.tsx
-website/src/components/AuthProvider.tsx
-website/src/theme/DocItem/Layout/index.tsx (already exists, extend)
-```
-
-**CSS** (RTL + styling):
-```
-website/src/css/urdu-rtl.css
-website/src/css/auth-modal.css
-```
-
-### Modified Files
-```
-website/sidebars.ts (add Module 2, 3, 4)
-website/docusaurus.config.ts (potentially add customFields for auth API URL)
-backend/main.py (register new routers)
-backend/requirements.txt (add jwt, bcrypt, psycopg2 libs)
-website/package.json (add better-auth client)
-```
-
----
-
-## Validation Checklist Reference
-
-(This spec will be validated against the requirements checklist before proceeding to planning phase)
-
-- [ ] No implementation details (languages/frameworks specified in FR but justified by existing stack)
-- [ ] All user scenarios are testable and prioritized
-- [ ] All functional requirements have clear acceptance criteria
-- [ ] All API contracts include request/response formats and error codes
-- [ ] Database schema provided as executable SQL
-- [ ] Success criteria are measurable and technology-agnostic
-- [ ] Out of scope section explicitly states what is NOT included
-- [ ] File paths are exact and complete for all new files
-- [ ] Edge cases are identified
-- [ ] NFRs cover performance, security, usability
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- Q: Which questionnaire fields schema is canonical — spec's 5 fields (python_level, robotics_experience, math_level, hardware_access, learning_goal) or contracts' 3 fields (education_level, field_of_study, robotics_experience)? → A: Spec's 5 fields are canonical. Contracts updated to match.
+- Q: Should personalization modify code examples or only prose? (FR-033 said "modify examples", R5 said "maintain ALL code examples") → A: Prose only. Code examples remain unchanged to avoid introducing bugs. FR-033 updated.
+- Q: Should the public /api/translate endpoint have rate limiting to prevent Gemini API abuse? → A: Yes, IP-based rate limit of 10 req/min per IP. Returns 429 on excess. Added FR-016a.
+- Q: FR-017 still references "better-auth" but research R4 decided on custom AuthProvider.tsx. Which is canonical? → A: Custom AuthProvider.tsx. FR-017 updated to match R4 decision.
+- Q: How are the 12 new chapter pages created given Phase A (Content) precedes Phase B (Subagents)? → A: Pages are written manually in Phase A with AI in-chat assistance. Subagents (Phase B) serve as tools for future content maintenance and expansion, not initial creation.
