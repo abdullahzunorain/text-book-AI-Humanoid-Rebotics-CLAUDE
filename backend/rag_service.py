@@ -18,7 +18,7 @@ _qdrant = QdrantClient(
 
 COLLECTION_NAME = "book_content"
 EMBEDDING_MODEL = "gemini-embedding-001"
-CHAT_MODEL = "gemini-2.0-flash"
+CHAT_MODEL = "gemini-2.5-flash"
 
 SYSTEM_PROMPT = """You are a helpful study companion for the Physical AI & Humanoid Robotics textbook.\
  Answer questions based ONLY on the provided textbook context. If the context doesn't contain \

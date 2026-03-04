@@ -91,15 +91,25 @@ async def translate_chapter(
     client_ip: str = request.client.host if request.client else "unknown"
     _check_rate_limit(client_ip)
 
-    # Read chapter file — try {slug}.md first, then {slug}/index.md
+    # Read chapter file — 3-step resolution to handle Docusaurus numeric-prefix stripping:
+    #   1. Exact:  docs/{slug}.md
+    #   2. Index:  docs/{slug}/index.md
+    #   3. Prefix: docs/parent/*-{basename}.md  (e.g. 01-architecture.md when slug='architecture')
     chapter_path: Path = _DOCS_DIR / f"{slug}.md"
     if not chapter_path.is_file():
         chapter_path = _DOCS_DIR / slug / "index.md"
     if not chapter_path.is_file():
-        raise HTTPException(
-            status_code=404,
-            detail=f"Chapter not found: {slug}",
-        )
+        # Docusaurus strips numeric prefixes ("01-") from URLs but the actual file has them
+        _parent = _DOCS_DIR / Path(slug).parent
+        _basename = Path(slug).name
+        _candidates = sorted(_parent.glob(f"*-{_basename}.md"))
+        if _candidates:
+            chapter_path = _candidates[0]
+        else:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Chapter not found: {slug}",
+            )
 
     chapter_markdown: str = chapter_path.read_text(encoding="utf-8")
 

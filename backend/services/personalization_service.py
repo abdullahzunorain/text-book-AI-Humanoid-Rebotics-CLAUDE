@@ -88,7 +88,7 @@ async def _call_gemini_personalize(prompt: str) -> str:
     """Call Gemini 2.5-flash with the personalization prompt."""
     client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY", ""))
     response = await client.aio.models.generate_content(
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         contents=prompt,
     )
     return response.text or ""
@@ -115,12 +115,31 @@ async def personalize_chapter(chapter_slug: str, user_id: int) -> dict[str, str]
     Returns:
         Dict with ``personalized_content`` (full personalised markdown with code blocks).
     """
-    # 1. Read chapter file — try {slug}.md first, then {slug}/index.md
-    chapter_path: pathlib.Path = _DOCS_ROOT / f"{chapter_slug}.md"
-    if not chapter_path.is_file():
-        chapter_path = _DOCS_ROOT / chapter_slug / "index.md"
-    with open(chapter_path, encoding="utf-8") as fh:
-        chapter_md: str = fh.read()
+    # 1. Read chapter file — 3-step resolution to handle Docusaurus numeric-prefix stripping:
+    #   a. Exact:  docs/{slug}.md
+    #   b. Index:  docs/{slug}/index.md
+    #   c. Prefix: docs/parent/*-{basename}.md  (e.g. 01-architecture.md for slug 'architecture')
+    _candidates_to_try = [
+        _DOCS_ROOT / f"{chapter_slug}.md",
+        _DOCS_ROOT / chapter_slug / "index.md",
+    ]
+    chapter_md: str | None = None
+    for _candidate in _candidates_to_try:
+        try:
+            with open(_candidate, encoding="utf-8") as fh:
+                chapter_md = fh.read()
+            break
+        except FileNotFoundError:
+            continue
+    if chapter_md is None:
+        # Docusaurus strips numeric prefixes ("01-") from URLs but files keep them
+        _parent = _DOCS_ROOT / pathlib.Path(chapter_slug).parent
+        _basename = pathlib.Path(chapter_slug).name
+        _prefix_matches = sorted(_parent.glob(f"*-{_basename}.md"))
+        if not _prefix_matches:
+            raise FileNotFoundError(f"Chapter not found: {chapter_slug}")
+        with open(_prefix_matches[0], encoding="utf-8") as fh:
+            chapter_md = fh.read()
 
     # 2. Fetch user background
     pool = get_pool()

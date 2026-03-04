@@ -160,7 +160,7 @@
 - [x] T033 [P] Manual edge case testing per specs/003-fix-auth-cookie-persistence/contracts/cookie-contract.md: multi-tab session sharing, port mismatch (`:3001`), cookie expiry behavior, sign-out+sign-in cycle in browser
 - [x] T034 [P] Security validation checklist (S1-S6 from contracts/cookie-contract.md): verify HttpOnly always true, Secure conditional, SameSite conditional, max-age enforced, sign-out clears cookie, CORS+credentials correct
 - [x] T035 [P] Run quickstart.md validation: follow all steps in specs/003-fix-auth-cookie-persistence/quickstart.md and verify each works
-- [ ] T036 Commit all changes in backend/ and website/ with message `fix: environment-aware cookie config for auth persistence (#003)`
+- [x] T036 Commit all changes in backend/ and website/ with message `fix: environment-aware cookie config for auth persistence (#003)`
 
 ---
 

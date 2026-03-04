@@ -66,7 +66,7 @@ async def _call_gemini_translate(prose: str) -> str:
     )
 
     response = await client.aio.models.generate_content(
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         contents=prompt,
     )
     return response.text or ""
