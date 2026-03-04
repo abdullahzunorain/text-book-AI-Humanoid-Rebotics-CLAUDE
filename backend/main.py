@@ -27,10 +27,23 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=False,
-    allow_methods=["POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type"],
     max_age=3600,
 )
+
+
+@app.get("/")
+async def root():
+    """Root endpoint with API info."""
+    return {
+        "service": "Physical AI Textbook RAG API",
+        "version": "1.0.0",
+        "endpoints": {
+            "health": "GET /health",
+            "chat": "POST /api/chat",
+        },
+    }
 
 
 class ChatRequest(BaseModel):
