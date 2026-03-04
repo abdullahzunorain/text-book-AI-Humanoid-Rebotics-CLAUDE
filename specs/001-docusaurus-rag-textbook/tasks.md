@@ -124,8 +124,8 @@
 - [X] T038 [P] Verify mobile responsiveness: chatbot panel, popup, sidebar, code blocks render correctly on 375px and 768px viewports
 - [X] T039 [P] Run Docusaurus production build (`npm run build`) and verify zero warnings, all assets load, no console errors
 - [X] T040 Deploy backend to Render: render.yaml created, code pushed to GitHub, configure GEMINI_API_KEY, QDRANT_URL, QDRANT_API_KEY env vars in Render dashboard, get public URL
-- [ ] T041 Update GitHub Actions vars.API_URL with Render production URL, redeploy to GitHub Pages
-- [ ] T042 End-to-end smoke test on deployed site: visit all 7 pages, ask chatbot 5+ questions, test selected-text query on 3+ pages, verify <3s page load and <5s chatbot response
+- [X] T041 Update GitHub Actions vars.API_URL with Render production URL, redeploy to GitHub Pages
+- [X] T042 End-to-end smoke test on deployed site: visit all 7 pages, ask chatbot 5+ questions, test selected-text query on 3+ pages, verify <3s page load and <5s chatbot response
 - [X] T043 [P] Review all pages for typos, broken links, broken images, rendering issues
 - [X] T044 Finalize README.md with actual deployed URLs, quickstart instructions verified working
 
