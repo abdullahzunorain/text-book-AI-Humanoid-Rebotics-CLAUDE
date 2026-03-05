@@ -19,10 +19,10 @@
 
 **Purpose**: Add new dependencies, DB migration, and foundational services that all user stories depend on.
 
-- [ ] T001 Add `groq>=0.15.0` and `openai>=1.60.0` to `backend/requirements.txt` and install
-- [ ] T002 [P] Add `GROQ_API_KEY`, `OPENAI_API_KEY`, and LLM config vars to `backend/.env.example`
-- [ ] T003 Create database migration `backend/migrations/002_add_cache_and_chat.sql` with `content_cache` and `chat_messages` tables per data-model.md
-- [ ] T004 Run migration `002_add_cache_and_chat.sql` against local/dev Neon DB
+- [x] T001 Add `groq>=0.15.0` and `openai>=1.60.0` to `backend/requirements.txt` and install
+- [x] T002 [P] Add `GROQ_API_KEY`, `OPENAI_API_KEY`, and LLM config vars to `backend/.env.example`
+- [x] T003 Create database migration `backend/migrations/002_add_cache_and_chat.sql` with `content_cache` and `chat_messages` tables per data-model.md
+- [x] T004 Run migration `002_add_cache_and_chat.sql` against local/dev Neon DB
 
 **Checkpoint**: Dependencies installed, new DB tables created. Ready for foundational services.
 
@@ -36,21 +36,21 @@
 
 ### LLM Client (FR-030, FR-031, FR-032)
 
-- [ ] T005 Create `LLMProvider` protocol and `GeminiProvider` class in `backend/services/llm_client.py` — wraps `google.genai` async API (`client.aio.models.generate_content`), catches `RESOURCE_EXHAUSTED` / HTTP 429 as transient errors
-- [ ] T006 [P] Create `GroqProvider` class in `backend/services/llm_client.py` — wraps `groq.AsyncGroq`, model `llama-3.3-70b-versatile`, catches `groq.RateLimitError`
-- [ ] T007 [P] Create `OpenAIProvider` class in `backend/services/llm_client.py` — wraps `openai.AsyncOpenAI`, model `gpt-4o-mini`, catches `openai.RateLimitError`
-- [ ] T008 Implement `LLMClient` class in `backend/services/llm_client.py` — chain-of-responsibility failover with per-provider rate-limit tracking (RPM/TPM/RPD cooldowns), exponential backoff retry (5 attempts, base 7, 1s initial, capped 60s, ±20% jitter), and `AllProvidersExhaustedError`
-- [ ] T009 Write unit tests for `LLMClient` in `backend/tests/test_llm_client.py` — test: Gemini success, Gemini 429 → Groq called, Groq 429 → OpenAI called, all exhausted → error, backoff delays verified, rate-limit cooldown tracking, jitter within bounds
+- [x] T005 Create `LLMProvider` protocol and `GeminiProvider` class in `backend/services/llm_client.py` — wraps `google.genai` async API (`client.aio.models.generate_content`), catches `RESOURCE_EXHAUSTED` / HTTP 429 as transient errors
+- [x] T006 [P] Create `GroqProvider` class in `backend/services/llm_client.py` — wraps `groq.AsyncGroq`, model `llama-3.3-70b-versatile`, catches `groq.RateLimitError`
+- [x] T007 [P] Create `OpenAIProvider` class in `backend/services/llm_client.py` — wraps `openai.AsyncOpenAI`, model `gpt-4o-mini`, catches `openai.RateLimitError`
+- [x] T008 Implement `LLMClient` class in `backend/services/llm_client.py` — chain-of-responsibility failover with per-provider rate-limit tracking (RPM/TPM/RPD cooldowns), exponential backoff retry (5 attempts, base 7, 1s initial, capped 60s, ±20% jitter), and `AllProvidersExhaustedError`
+- [x] T009 Write unit tests for `LLMClient` in `backend/tests/test_llm_client.py` — test: Gemini success, Gemini 429 → Groq called, Groq 429 → OpenAI called, all exhausted → error, backoff delays verified, rate-limit cooldown tracking, jitter within bounds
 
 ### Cache Service (FR-033, FR-034, FR-035)
 
-- [ ] T010 [P] Create `backend/services/cache_service.py` with `get_cached(user_id, chapter_slug, cache_type) -> str | None`, `set_cached(user_id, chapter_slug, cache_type, content, metadata) -> None`, and `invalidate_personalization(user_id) -> None` — uses asyncpg pool from `db.py`, UPSERT on `content_cache`
-- [ ] T011 [P] Write tests for cache service in `backend/tests/test_cache_service.py` — test: cache miss returns None, set+get returns content, UPSERT overwrites, invalidate deletes only personalization rows, translation rows survive invalidation
+- [x] T010 [P] Create `backend/services/cache_service.py` with `get_cached(user_id, chapter_slug, cache_type) -> str | None`, `set_cached(user_id, chapter_slug, cache_type, content, metadata) -> None`, and `invalidate_personalization(user_id) -> None` — uses asyncpg pool from `db.py`, UPSERT on `content_cache`
+- [x] T011 [P] Write tests for cache service in `backend/tests/test_cache_service.py` — test: cache miss returns None, set+get returns content, UPSERT overwrites, invalidate deletes only personalization rows, translation rows survive invalidation
 
 ### Chat History Service (FR-011 chat persistence)
 
-- [ ] T012 [P] Create `backend/services/chat_history_service.py` with `save_message(user_id, question, answer, selected_text, sources) -> int` and `get_history(user_id, limit, offset) -> list[dict]` — uses asyncpg pool, ordered by `created_at DESC`
-- [ ] T013 [P] Write tests for chat history service in `backend/tests/test_chat_history.py` — test: save + retrieve returns message, ordering is newest-first, pagination with limit/offset, selected_text nullable, sources stored as JSONB
+- [x] T012 [P] Create `backend/services/chat_history_service.py` with `save_message(user_id, question, answer, selected_text, sources) -> int` and `get_history(user_id, limit, offset) -> list[dict]` — uses asyncpg pool, ordered by `created_at DESC`
+- [x] T013 [P] Write tests for chat history service in `backend/tests/test_chat_history.py` — test: save + retrieve returns message, ordering is newest-first, pagination with limit/offset, selected_text nullable, sources stored as JSONB
 
 **Checkpoint**: Foundation ready — `LLMClient`, `cache_service`, and `chat_history_service` all passing tests. User story implementation can begin.
 
