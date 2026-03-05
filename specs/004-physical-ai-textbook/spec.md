@@ -210,7 +210,7 @@ A reader highlights a passage of text on the current chapter and uses the chatbo
 
 - The target audience is primarily English-speaking students/professionals who may also read Urdu.
 - The textbook content is authored in Markdown and stored in the repository alongside the code.
-- AI-powered features (personalization, translation, RAG) rely on external LLM APIs (e.g., Google Gemini, OpenAI) and may incur per-request costs.
+- AI-powered features (personalization, translation, RAG) rely on external LLM APIs (e.g., Google Gemini, OpenAI, Groq) and may incur per-request costs.
 - The deployment environment does not require HTTPS for local development (HTTP on localhost).
 - Session persistence uses httpOnly cookies with environment-aware Secure and SameSite attributes.
 - The background questionnaire fields (Python level, robotics experience, etc.) are sufficient to drive meaningful personalization.
