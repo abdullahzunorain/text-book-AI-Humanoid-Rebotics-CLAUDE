@@ -1,5 +1,5 @@
 """
-Personalization service: adapt chapter content to user's educational background via Gemini.
+Personalization service: adapt chapter content to user's educational background via LLMClient.
 
 Public API:
     build_personalization_prompt(chapter_md, profile) -> str
@@ -11,9 +11,9 @@ from __future__ import annotations
 import os
 import pathlib
 
-from google import genai
-
 from db import get_pool
+from services.cache_service import get_cached, set_cached
+from services.llm_client import get_llm_client
 from services.translation_service import extract_code_blocks
 
 # ---------------------------------------------------------------------------
@@ -80,21 +80,6 @@ def build_personalization_prompt(chapter_md: str, profile: dict[str, str | bool]
 
 
 # ---------------------------------------------------------------------------
-# Gemini helper (internal)
-# ---------------------------------------------------------------------------
-
-
-async def _call_gemini_personalize(prompt: str) -> str:
-    """Call Gemini 2.5-flash with the personalization prompt."""
-    client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY", ""))
-    response = await client.aio.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt,
-    )
-    return response.text or ""
-
-
-# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
@@ -150,15 +135,36 @@ async def personalize_chapter(chapter_slug: str, user_id: int) -> dict[str, str]
     )
     profile: dict[str, str | bool] = dict(row) if row else {}
 
-    # 3. Extract code blocks, build prompt, call Gemini
+    # 3. Check cache first (FR-034)
+    cached = await get_cached(user_id, chapter_slug, "personalization")
+    if cached is not None:
+        return {"personalized_content": cached}
+
+    # 4. Extract code blocks, build prompt, call LLMClient with failover
     _prose, blocks = extract_code_blocks(chapter_md)
     prompt: str = build_personalization_prompt(chapter_md, profile)
-    personalised_text: str = await _call_gemini_personalize(prompt)
 
-    # 4. Re-insert original code blocks at placeholder positions
+    llm = get_llm_client()
+    personalised_text: str = await llm.generate(
+        prompt=prompt,
+        system="You are an AI tutor. Adapt textbook content for the student profile.",
+        max_tokens=4096,
+        temperature=0.4,
+    )
+
+    # 5. Re-insert original code blocks at placeholder positions
     for idx, block in enumerate(blocks):
         personalised_text = personalised_text.replace(
             f"{{{{CODE_BLOCK_{idx}}}}}", block
         )
+
+    # 6. Cache the result (FR-033)
+    await set_cached(
+        user_id=user_id,
+        chapter_slug=chapter_slug,
+        cache_type="personalization",
+        content=personalised_text,
+        metadata={"profile": {k: str(v) for k, v in profile.items()}},
+    )
 
     return {"personalized_content": personalised_text}

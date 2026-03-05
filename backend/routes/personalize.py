@@ -15,6 +15,7 @@ from jose import ExpiredSignatureError, JWTError
 from pydantic import BaseModel, Field
 
 from auth_utils import decode_token
+from services.llm_client import AllProvidersExhaustedError
 from services.personalization_service import personalize_chapter
 
 router: APIRouter = APIRouter()
@@ -76,6 +77,11 @@ async def personalize_endpoint(
         )
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Chapter not found")
+    except AllProvidersExhaustedError:
+        raise HTTPException(
+            status_code=503,
+            detail="All AI providers are temporarily unavailable. Please try again later.",
+        )
     except Exception as exc:
         err_str = str(exc)
         if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:

@@ -1,12 +1,18 @@
 """
-RAG service: embed user question, retrieve from Qdrant, generate answer via Gemini.
+RAG service: embed user question, retrieve from Qdrant, generate answer via LLMClient.
+
+Uses Gemini for embeddings and LLMClient (Gemini→Groq→OpenAI) for generation.
+Optionally saves chat history for authenticated users.
 """
 import os
 from google import genai
 from google.genai import types
 from qdrant_client import QdrantClient
 
-# Google GenAI client (native API for both embeddings and chat)
+from services.llm_client import get_llm_client, AllProvidersExhaustedError
+from services.chat_history_service import save_message as save_chat_message
+
+# Google GenAI client (for embeddings only — generation uses LLMClient)
 _genai_client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY", ""))
 
 # Qdrant client
@@ -59,9 +65,18 @@ def retrieve(query_embedding: list[float], limit: int = 5) -> list[dict]:
     ]
 
 
-def generate_answer(question: str, selected_text: str | None = None) -> dict:
-    """Full RAG pipeline: embed → retrieve → generate."""
-    # 1. Embed the question
+async def generate_answer(question: str, selected_text: str | None = None, user_id: int | None = None) -> dict:
+    """Full RAG pipeline: embed → retrieve → generate via LLMClient failover.
+
+    Args:
+        question: The user's question.
+        selected_text: Optional highlighted text for scoped answers.
+        user_id: Optional authenticated user ID (enables chat history saving).
+
+    Returns:
+        Dict with 'answer' and 'sources' keys.
+    """
+    # 1. Embed the question (still uses Gemini directly — sync)
     query_embedding = embed(question)
 
     # 2. Retrieve relevant chunks
@@ -89,17 +104,31 @@ def generate_answer(question: str, selected_text: str | None = None) -> dict:
             f"Question about this passage: {question}"
         )
 
-    # 5. Call Gemini via native GenAI SDK
-    response = _genai_client.models.generate_content(
-        model=CHAT_MODEL,
-        contents=f"Textbook context:\n{context}\n\n{user_message}",
-        config=types.GenerateContentConfig(
-            system_instruction=SYSTEM_PROMPT,
-            max_output_tokens=1024,
-            temperature=0.3,
-        ),
+    # 5. Call LLM via failover client
+    llm = get_llm_client()
+    prompt = f"Textbook context:\n{context}\n\n{user_message}"
+    answer = await llm.generate(
+        prompt=prompt,
+        system=SYSTEM_PROMPT,
+        max_tokens=1024,
+        temperature=0.3,
     )
 
-    answer = response.text or "I couldn't generate an answer. Please try again."
+    if not answer:
+        answer = "I couldn't generate an answer. Please try again."
+
+    # 6. Save to chat history if user is authenticated
+    if user_id is not None:
+        try:
+            await save_chat_message(
+                user_id=user_id,
+                question=question,
+                answer=answer,
+                selected_text=selected_text,
+                sources=sources,
+            )
+        except Exception:
+            # Don't fail the response if history saving fails
+            pass
 
     return {"answer": answer, "sources": sources}

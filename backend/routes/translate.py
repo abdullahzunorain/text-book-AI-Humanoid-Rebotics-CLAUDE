@@ -13,13 +13,32 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request, Response
+from jose import ExpiredSignatureError, JWTError
 
 logger = logging.getLogger(__name__)
 from pydantic import BaseModel, Field
 
+from auth_utils import decode_token
+from services.llm_client import AllProvidersExhaustedError
 from services.translation_service import translate_to_urdu
 
 router: APIRouter = APIRouter()
+
+_COOKIE_NAME: str = "token"
+
+
+def _get_user_id_from_cookie(request: Request) -> int:
+    """Extract user_id from JWT cookie. Raises 401 with distinct detail codes."""
+    token: str | None = request.cookies.get(_COOKIE_NAME)
+    if not token:
+        raise HTTPException(status_code=401, detail="not_authenticated")
+    try:
+        payload: dict = decode_token(token)
+        return payload["sub"]
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="session_expired")
+    except (JWTError, Exception):
+        raise HTTPException(status_code=401, detail="invalid_token")
 
 # ---------------------------------------------------------------------------
 # Rate limiting (in-memory, per-IP)
@@ -83,6 +102,9 @@ async def translate_chapter(
     """Translate a chapter from English to Urdu."""
     slug: str = body.chapter_slug
 
+    # Auth — require JWT (FR-022)
+    user_id: int = _get_user_id_from_cookie(request)
+
     # Validate slug format
     if not _SLUG_RE.match(slug) or ".." in slug:
         raise HTTPException(status_code=400, detail="Invalid chapter_slug format")
@@ -115,7 +137,16 @@ async def translate_chapter(
 
     # Translate
     try:
-        result: dict[str, str | list[str]] = await translate_to_urdu(chapter_markdown)
+        result: dict[str, str | list[str]] = await translate_to_urdu(
+            chapter_markdown,
+            user_id=user_id,
+            chapter_slug=slug,
+        )
+    except AllProvidersExhaustedError:
+        raise HTTPException(
+            status_code=503,
+            detail="All AI providers are temporarily unavailable. Please try again later.",
+        )
     except Exception as exc:
         logger.exception("Translation failed for slug=%s: %s", slug, exc)
         err_str = str(exc)

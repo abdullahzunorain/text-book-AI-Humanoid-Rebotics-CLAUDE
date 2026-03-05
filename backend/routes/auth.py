@@ -15,6 +15,7 @@ from pydantic import BaseModel, EmailStr, Field
 from auth_utils import create_token, decode_token, hash_password, verify_password
 from cookie_config import get_cookie_config
 from db import get_pool
+from services.cache_service import invalidate_personalization
 
 router: APIRouter = APIRouter()
 
@@ -213,5 +214,11 @@ async def save_background(
         body.hardware_access,
         body.learning_goal,
     )
+
+    # Invalidate stale personalization cache when background changes (FR-035)
+    try:
+        await invalidate_personalization(user_id)
+    except Exception:
+        pass  # Don't fail the request if cache invalidation fails
 
     return dict(row)

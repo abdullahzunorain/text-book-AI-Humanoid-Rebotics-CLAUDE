@@ -66,12 +66,12 @@
 
 ### Implementation for User Story 1
 
-- [ ] T014 [US1] Verify all chapters in `website/docs/` have valid frontmatter (`title`, `sidebar_position`) — fix any missing metadata in `website/docs/intro/`, `website/docs/module1-ros2/`, `website/docs/module2-simulation/`, `website/docs/module3-isaac/`, `website/docs/module4-vla/`
-- [ ] T015 [US1] Verify `website/sidebars.ts` includes all 4 modules and their chapters in correct order — add any missing entries
-- [ ] T016 [P] [US1] Verify `website/docusaurus.config.ts` footer links point to correct chapter paths for all 4 modules
-- [ ] T017 [US1] Update `_infer_module()` in `backend/index_content.py` to handle `module2`, `module3`, `module4` patterns and add `chapter_slug` to Qdrant payload. Increase `MAX_TOKENS` from 400 to 500
-- [ ] T018 [US1] Run `python backend/index_content.py` to re-index all 4 modules into Qdrant `book_content` collection
-- [ ] T019 [US1] Verify `npm run build` succeeds in `website/` with no broken links or missing pages
+- [x] T014 [US1] Verify all chapters in `website/docs/` have valid frontmatter (`title`, `sidebar_position`) — fix any missing metadata in `website/docs/intro/`, `website/docs/module1-ros2/`, `website/docs/module2-simulation/`, `website/docs/module3-isaac/`, `website/docs/module4-vla/`
+- [x] T015 [US1] Verify `website/sidebars.ts` includes all 4 modules and their chapters in correct order — add any missing entries
+- [x] T016 [P] [US1] Verify `website/docusaurus.config.ts` footer links point to correct chapter paths for all 4 modules
+- [x] T017 [US1] Update `_infer_module()` in `backend/index_content.py` to handle `module2`, `module3`, `module4` patterns and add `chapter_slug` to Qdrant payload. Increase `MAX_TOKENS` from 400 to 500
+- [x] T018 [US1] Run `python backend/index_content.py` to re-index all 4 modules into Qdrant `book_content` collection
+- [x] T019 [US1] Verify `npm run build` succeeds in `website/` with no broken links or missing pages
 
 **Checkpoint**: Textbook fully browsable — all 4 modules, 17+ chapters, sidebar navigation, next/prev links. SC-001 verifiable.
 
@@ -85,16 +85,16 @@
 
 ### Implementation for User Story 2
 
-- [ ] T020 [US2] Refactor `backend/rag_service.py` — replace direct `_genai_client.models.generate_content()` with `LLMClient.generate()` import from `services/llm_client.py`. Keep embedding via `gemini-embedding-001` unchanged
-- [ ] T021 [US2] Add optional `user_id: int | None = None` parameter to `generate_answer()` in `backend/rag_service.py` — when provided, call `chat_history_service.save_message()` after generating answer
-- [ ] T022 [US2] Update `POST /api/chat` in `backend/main.py` — extract optional `user_id` from JWT cookie (non-failing: unauthenticated users get None), pass to `generate_answer()`
-- [ ] T023 [US2] Create `backend/routes/chat.py` with `GET /api/chat/history` endpoint — auth required, accepts `limit` (default 50, max 100) and `offset` (default 0) query params, returns `{messages: [...], total, limit, offset}` per api-contracts.md
-- [ ] T024 [US2] Register chat router in `backend/main.py` — `app.include_router(chat_router)`
-- [ ] T025 [US2] Update root endpoint in `backend/main.py` to include `chat_history: "GET /api/chat/history"` in endpoints dict
-- [ ] T026 [US2] Write contract tests for `GET /api/chat/history` in `backend/tests/test_chat.py` — test: 401 without auth, 200 with valid token returns messages array, pagination works, empty history returns `[]`
-- [ ] T027 [US2] Write contract test for `POST /api/chat` history saving in `backend/tests/test_chat.py` — test: authenticated request saves to DB, unauthenticated request does not save
-- [ ] T028 [US2] Update `ChatWidget.tsx` in `website/src/components/ChatWidget.tsx` — on mount, if user is authenticated, fetch `GET /api/chat/history` and display previous messages in chat window
-- [ ] T029 [US2] Add empty-question validation UX in `ChatWidget.tsx` — show validation message when submitting blank
+- [x] T020 [US2] Refactor `backend/rag_service.py` — replace direct `_genai_client.models.generate_content()` with `LLMClient.generate()` import from `services/llm_client.py`. Keep embedding via `gemini-embedding-001` unchanged
+- [x] T021 [US2] Add optional `user_id: int | None = None` parameter to `generate_answer()` in `backend/rag_service.py` — when provided, call `chat_history_service.save_message()` after generating answer
+- [x] T022 [US2] Update `POST /api/chat` in `backend/main.py` — extract optional `user_id` from JWT cookie (non-failing: unauthenticated users get None), pass to `generate_answer()`
+- [x] T023 [US2] Create `backend/routes/chat.py` with `GET /api/chat/history` endpoint — auth required, accepts `limit` (default 50, max 100) and `offset` (default 0) query params, returns `{messages: [...], total, limit, offset}` per api-contracts.md
+- [x] T024 [US2] Register chat router in `backend/main.py` — `app.include_router(chat_router)`
+- [x] T025 [US2] Update root endpoint in `backend/main.py` to include `chat_history: "GET /api/chat/history"` in endpoints dict
+- [x] T026 [US2] Write contract tests for `GET /api/chat/history` in `backend/tests/test_chat.py` — test: 401 without auth, 200 with valid token returns messages array, pagination works, empty history returns `[]`
+- [x] T027 [US2] Write contract test for `POST /api/chat` history saving in `backend/tests/test_chat.py` — test: authenticated request saves to DB, unauthenticated request does not save
+- [x] T028 [US2] Update `ChatWidget.tsx` in `website/src/components/ChatWidget.tsx` — on mount, if user is authenticated, fetch `GET /api/chat/history` and display previous messages in chat window
+- [x] T029 [US2] Add empty-question validation UX in `ChatWidget.tsx` — show validation message when submitting blank
 
 **Checkpoint**: Chatbot fully working — RAG answers via failover, selected-text Q&A, chat history persisted and displayed. SC-002, SC-006 verifiable.
 
@@ -110,9 +110,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T030 [US3] Modify `POST /api/user/background` in `backend/routes/auth.py` — after saving background, call `cache_service.invalidate_personalization(user_id)` to delete stale personalization cache (FR-035)
-- [ ] T031 [US3] Write integration test in `backend/tests/test_auth.py` — test: save background → verify `content_cache` personalization rows deleted for that user, translation rows untouched
-- [ ] T032 [US3] Verify existing auth tests still pass after cache invalidation integration — run `pytest tests/test_auth.py -v`
+- [x] T030 [US3] Modify `POST /api/user/background` in `backend/routes/auth.py` — after saving background, call `cache_service.invalidate_personalization(user_id)` to delete stale personalization cache (FR-035)
+- [x] T031 [US3] Write integration test in `backend/tests/test_auth.py` — test: save background → verify `content_cache` personalization rows deleted for that user, translation rows untouched
+- [x] T032 [US3] Verify existing auth tests still pass after cache invalidation integration — run `pytest tests/test_auth.py -v`
 
 **Checkpoint**: Auth + background flow complete with cache invalidation on profile update. SC-003 verifiable.
 
@@ -126,11 +126,11 @@
 
 ### Implementation for User Story 4
 
-- [ ] T033 [US4] Modify `personalize_chapter()` in `backend/services/personalization_service.py` — check `cache_service.get_cached(user_id, slug, 'personalization')` before calling LLM; on cache miss, call `LLMClient.generate()` instead of `_call_gemini_personalize()`, then `cache_service.set_cached()`
-- [ ] T034 [US4] Remove or deprecate `_call_gemini_personalize()` in `backend/services/personalization_service.py` — all LLM calls go through `LLMClient`
-- [ ] T035 [US4] Update error handling in `POST /api/personalize` route in `backend/routes/personalize.py` — catch `AllProvidersExhaustedError` and return 503 with descriptive message
-- [ ] T036 [US4] Write integration test in `backend/tests/test_personalize.py` — test: first call generates + caches, second call returns cached (no LLM call), profile update clears cache, next call regenerates
-- [ ] T037 [US4] Write contract test for 503 on all-providers-exhausted in `backend/tests/test_personalize.py`
+- [x] T033 [US4] Modify `personalize_chapter()` in `backend/services/personalization_service.py` — check `cache_service.get_cached(user_id, slug, 'personalization')` before calling LLM; on cache miss, call `LLMClient.generate()` instead of `_call_gemini_personalize()`, then `cache_service.set_cached()`
+- [x] T034 [US4] Remove or deprecate `_call_gemini_personalize()` in `backend/services/personalization_service.py` — all LLM calls go through `LLMClient`
+- [x] T035 [US4] Update error handling in `POST /api/personalize` route in `backend/routes/personalize.py` — catch `AllProvidersExhaustedError` and return 503 with descriptive message
+- [x] T036 [US4] Write integration test in `backend/tests/test_personalize.py` — test: first call generates + caches, second call returns cached (no LLM call), profile update clears cache, next call regenerates
+- [x] T037 [US4] Write contract test for 503 on all-providers-exhausted in `backend/tests/test_personalize.py`
 
 **Checkpoint**: Personalization works with failover + caching + invalidation. SC-004 verifiable.
 
@@ -144,12 +144,12 @@
 
 ### Implementation for User Story 5
 
-- [ ] T038 [US5] Add JWT auth requirement to `POST /api/translate` in `backend/routes/translate.py` — extract `user_id` from cookie (reuse `_get_user_id_from_cookie` pattern from `routes/personalize.py`), per FR-022
-- [ ] T039 [US5] Modify `translate_to_urdu()` in `backend/services/translation_service.py` — accept `user_id` parameter, check `cache_service.get_cached(user_id, slug, 'translation')` before calling LLM; on miss, call `LLMClient.generate()` instead of `_call_gemini_translate()`, then `cache_service.set_cached()`
-- [ ] T040 [US5] Remove or deprecate `_call_gemini_translate()` in `backend/services/translation_service.py` — all LLM calls go through `LLMClient`
-- [ ] T041 [US5] Update `translate_chapter()` endpoint in `backend/routes/translate.py` — pass `user_id` to service, catch `AllProvidersExhaustedError` as 503
-- [ ] T042 [US5] Update existing translate tests in `backend/tests/test_translate.py` — test: 401 without auth, first call generates + caches, second call returns cached, cache NOT invalidated by profile update
-- [ ] T043 [US5] Write contract test for 503 on all-providers-exhausted in `backend/tests/test_translate.py`
+- [x] T038 [US5] Add JWT auth requirement to `POST /api/translate` in `backend/routes/translate.py` — extract `user_id` from cookie (reuse `_get_user_id_from_cookie` pattern from `routes/personalize.py`), per FR-022
+- [x] T039 [US5] Modify `translate_to_urdu()` in `backend/services/translation_service.py` — accept `user_id` parameter, check `cache_service.get_cached(user_id, slug, 'translation')` before calling LLM; on miss, call `LLMClient.generate()` instead of `_call_gemini_translate()`, then `cache_service.set_cached()`
+- [x] T040 [US5] Remove or deprecate `_call_gemini_translate()` in `backend/services/translation_service.py` — all LLM calls go through `LLMClient`
+- [x] T041 [US5] Update `translate_chapter()` endpoint in `backend/routes/translate.py` — pass `user_id` to service, catch `AllProvidersExhaustedError` as 503
+- [x] T042 [US5] Update existing translate tests in `backend/tests/test_translate.py` — test: 401 without auth, first call generates + caches, second call returns cached, cache NOT invalidated by profile update
+- [x] T043 [US5] Write contract test for 503 on all-providers-exhausted in `backend/tests/test_translate.py`
 
 **Checkpoint**: Translation works with auth + failover + permanent caching. SC-005 verifiable.
 
@@ -165,9 +165,9 @@
 
 ### Implementation for User Story 6
 
-- [ ] T044 [US6] Verify `ChatWidget.tsx` captures document selection via `window.getSelection()` and passes it as `selected_text` to `POST /api/chat` — fix or implement if missing in `website/src/components/ChatWidget.tsx`
-- [ ] T045 [US6] Add visual indicator in `ChatWidget.tsx` showing selected text context above the input when text is selected — clear selection button to reset
-- [ ] T046 [US6] Write contract test in `backend/tests/test_chat.py` — test: `POST /api/chat` with `selected_text` returns answer that mentions the selected passage, without `selected_text` returns general RAG answer
+- [x] T044 [US6] Verify `ChatWidget.tsx` captures document selection via `window.getSelection()` and passes it as `selected_text` to `POST /api/chat` — fix or implement if missing in `website/src/components/ChatWidget.tsx`
+- [x] T045 [US6] Add visual indicator in `ChatWidget.tsx` showing selected text context above the input when text is selected — clear selection button to reset
+- [x] T046 [US6] Write contract test in `backend/tests/test_chat.py` — test: `POST /api/chat` with `selected_text` returns answer that mentions the selected passage, without `selected_text` returns general RAG answer
 
 **Checkpoint**: Selected-text Q&A end-to-end. SC-006 verifiable.
 
@@ -177,13 +177,13 @@
 
 **Purpose**: Quality, documentation, and deployment readiness.
 
-- [ ] T047 [P] Update `backend/.env.example` with all new env vars documented with comments
-- [ ] T048 [P] Update root endpoint response in `backend/main.py` to accurately reflect all available endpoints
-- [ ] T049 Run full test suite — `cd backend && .venv/bin/python -m pytest tests/ -v` — all tests must pass
-- [ ] T050 [P] Run `cd website && npx tsc --noEmit` — verify no TypeScript errors
-- [ ] T051 [P] Run `cd website && npm run build` — verify Docusaurus builds with no broken links
-- [ ] T052 Verify quickstart.md instructions work end to end — clone, install, migrate, index, run
-- [ ] T053 [P] Update `backend/README.md` with new endpoints, env vars, and migration instructions
+- [x] T047 [P] Update `backend/.env.example` with all new env vars documented with comments
+- [x] T048 [P] Update root endpoint response in `backend/main.py` to accurately reflect all available endpoints
+- [x] T049 Run full test suite — `cd backend && .venv/bin/python -m pytest tests/ -v` — all tests must pass
+- [x] T050 [P] Run `cd website && npx tsc --noEmit` — verify no TypeScript errors
+- [x] T051 [P] Run `cd website && npm run build` — verify Docusaurus builds with no broken links
+- [x] T052 Verify quickstart.md instructions work end to end — clone, install, migrate, index, run
+- [x] T053 [P] Update `backend/README.md` with new endpoints, env vars, and migration instructions
 
 ---
 

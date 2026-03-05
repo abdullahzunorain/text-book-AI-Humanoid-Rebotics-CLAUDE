@@ -7,10 +7,11 @@ from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from routes.auth import router as auth_router
+from routes.chat import router as chat_router
 from routes.personalize import router as personalize_router
 from routes.translate import router as translate_router
 
@@ -56,6 +57,7 @@ app.add_middleware(
 app.include_router(translate_router)
 app.include_router(auth_router)
 app.include_router(personalize_router)
+app.include_router(chat_router)
 
 
 @app.get("/")
@@ -67,6 +69,7 @@ async def root():
         "endpoints": {
             "health": "GET /health",
             "chat": "POST /api/chat",
+            "chat_history": "GET /api/chat/history",
             "translate": "POST /api/translate",
             "auth": "POST /api/auth/signup | /signin | /signout, GET /api/auth/me",
             "personalize": "POST /api/personalize",
@@ -86,21 +89,39 @@ class ChatResponse(BaseModel):
 
 
 @app.post("/api/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):
+async def chat(request_body: ChatRequest, request: Request):
     """Answer a question using RAG over textbook content."""
-    question = request.question.strip()
+    question = request_body.question.strip()
     if not question:
         raise HTTPException(status_code=400, detail="Question cannot be empty")
+
+    # Extract optional user_id from JWT cookie (non-failing: unauthenticated users get None)
+    user_id: int | None = None
+    token = request.cookies.get("token")
+    if token:
+        try:
+            from auth_utils import decode_token
+            payload = decode_token(token)
+            user_id = payload.get("sub")
+        except Exception:
+            pass  # Unauthenticated — proceed without saving history
 
     try:
         from rag_service import generate_answer
 
-        result = generate_answer(
+        result = await generate_answer(
             question=question,
-            selected_text=request.selected_text,
+            selected_text=request_body.selected_text,
+            user_id=user_id,
         )
         return ChatResponse(answer=result["answer"], sources=result["sources"])
     except Exception as e:
+        from services.llm_client import AllProvidersExhaustedError
+        if isinstance(e, AllProvidersExhaustedError):
+            raise HTTPException(
+                status_code=503,
+                detail="Service temporarily unavailable. Please try again later.",
+            )
         err_str = str(e)
         if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
             raise HTTPException(

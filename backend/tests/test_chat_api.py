@@ -7,14 +7,18 @@ Tests:
 - Malformed body → 422
 """
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
 from fastapi.testclient import TestClient
 from main import app
 
 client = TestClient(app)
 
 
-def _mock_generate_answer(question: str, selected_text: str | None = None) -> dict:
+async def _mock_generate_answer(
+    question: str,
+    selected_text: str | None = None,
+    user_id: int | None = None,
+) -> dict:
     """Mock RAG response for testing."""
     return {
         "answer": f"Mock answer for: {question}",
@@ -25,7 +29,7 @@ def _mock_generate_answer(question: str, selected_text: str | None = None) -> di
 class TestChatEndpoint:
     """Contract tests for POST /api/chat."""
 
-    @patch("rag_service.generate_answer", side_effect=_mock_generate_answer)
+    @patch("rag_service.generate_answer", new_callable=AsyncMock, side_effect=_mock_generate_answer)
     def test_valid_request_returns_200(self, mock_rag):
         """Valid request → 200 with answer field."""
         response = client.post(
@@ -40,7 +44,7 @@ class TestChatEndpoint:
         assert "sources" in data
         assert isinstance(data["sources"], list)
 
-    @patch("rag_service.generate_answer", side_effect=_mock_generate_answer)
+    @patch("rag_service.generate_answer", new_callable=AsyncMock, side_effect=_mock_generate_answer)
     def test_valid_request_with_selected_text(self, mock_rag):
         """Valid request with selected_text → 200."""
         response = client.post(
