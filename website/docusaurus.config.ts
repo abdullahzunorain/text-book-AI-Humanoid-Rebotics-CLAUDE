@@ -12,9 +12,9 @@ const config: Config = {
   },
 
   url: 'https://abdullahzunorain.github.io',
-  baseUrl: '/text-book-AI-Humanoid-Rebotics-claude/',
+  baseUrl: '/text-book-AI-Humanoid-Rebotics-CLAUDE/',
   organizationName: 'abdullahzunorain',
-  projectName: 'text-book-AI-Humanoid-Rebotics-claude',
+  projectName: 'text-book-AI-Humanoid-Rebotics-CLAUDE',
   trailingSlash: false,
 
   onBrokenLinks: 'throw',
@@ -35,7 +35,7 @@ const config: Config = {
         docs: {
           sidebarPath: './sidebars.ts',
           editUrl:
-            'https://github.com/abdullahzunorain/text-book-AI-Humanoid-Rebotics-claude/tree/main/website/',
+            'https://github.com/abdullahzunorain/text-book-AI-Humanoid-Rebotics-CLAUDE/tree/main/website/',
         },
         blog: false, // Disabled — not needed for MVP
         theme: {
@@ -69,7 +69,7 @@ const config: Config = {
           label: 'Textbook',
         },
         {
-          href: 'https://github.com/abdullahzunorain/text-book-AI-Humanoid-Rebotics-claude',
+          href: 'https://github.com/abdullahzunorain/text-book-AI-Humanoid-Rebotics-CLAUDE',
           label: 'GitHub',
           position: 'right',
         },
@@ -108,7 +108,7 @@ const config: Config = {
           items: [
             {
               label: 'GitHub',
-              href: 'https://github.com/abdullahzunorain/text-book-AI-Humanoid-Rebotics-claude',
+              href: 'https://github.com/abdullahzunorain/text-book-AI-Humanoid-Rebotics-CLAUDE',
             },
           ],
         },

@@ -4,7 +4,7 @@
 
 **An AI-powered, interactive textbook for learning Physical AI, ROS 2, simulation, and humanoid robotics.**
 
-[![Live Site](https://img.shields.io/badge/Live%20Site-GitHub%20Pages-blue?style=for-the-badge&logo=github)](https://abdullahzunorain.github.io/text-book-AI-Humanoid-Rebotics-claude/)
+[![Live Site](https://img.shields.io/badge/Live%20Site-GitHub%20Pages-blue?style=for-the-badge&logo=github)](https://abdullahzunorain.github.io/text-book-AI-Humanoid-Rebotics-CLAUDE/)
 [![Backend](https://img.shields.io/badge/API-FastAPI-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
 [![AI](https://img.shields.io/badge/AI-Gemini%202.5%20Flash-4285F4?style=for-the-badge&logo=google)](https://ai.google.dev/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
@@ -144,8 +144,8 @@ You'll also need free accounts for:
 ### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/abdullahzunorain/text-book-AI-Humanoid-Rebotics-claude.git
-cd text-book-AI-Humanoid-Rebotics-claude
+git clone https://github.com/abdullahzunorain/text-book-AI-Humanoid-Rebotics-CLAUDE.git
+cd text-book-AI-Humanoid-Rebotics-CLAUDE
 ```
 
 ---
@@ -303,7 +303,7 @@ You should see:
 
 ### Step 8: Open and Use the Textbook
 
-1. Open your browser and go to **http://localhost:3000/text-book-AI-Humanoid-Rebotics-claude/**
+1. Open your browser and go to **http://localhost:3000/text-book-AI-Humanoid-Rebotics-CLAUDE/**
 2. You'll see the textbook landing page — click **"Textbook"** in the navbar to start reading
 3. The **chatbot widget** (floating button in the bottom-right) is available on every page — click it and start asking questions!
 
