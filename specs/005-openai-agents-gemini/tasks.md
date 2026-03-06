@@ -19,8 +19,8 @@
 
 **Purpose**: Update dependencies and environment configuration before any code changes.
 
-- [ ] T001 [P] Update backend/requirements.txt — remove `groq>=0.15.0`, `google-genai>=1.0.0`, `openai>=1.60.0`; add `openai-agents>=0.0.15`
-- [ ] T002 [P] Update backend/.env.example — remove `GROQ_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY` sections and `LLM_*` config block; keep only `GOOGLE_API_KEY`
+- [X] T001 [P] Update backend/requirements.txt — remove `groq>=0.15.0`, `google-genai>=1.0.0`, `openai>=1.60.0`; add `openai-agents>=0.0.15`
+- [X] T002 [P] Update backend/.env.example — remove `GROQ_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY` sections and `LLM_*` config block; keep only `GOOGLE_API_KEY`
 
 **Checkpoint**: `uv pip install -r requirements.txt` succeeds with new deps.
 
@@ -32,8 +32,8 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T003 Create backend/services/agent_config.py — shared `AsyncOpenAI` client pointing at `https://generativelanguage.googleapis.com/v1beta/openai/` with `GOOGLE_API_KEY`, shared `OpenAIChatCompletionsModel` for `gemini-2.5-flash`, three `Agent` instances (tutor, personalization, translation) with system prompts extracted from current services, async `embed(text) -> list[float]` using `gemini-embedding-001` via same client, async `run_agent(agent, input) -> str` helper wrapping `Runner.run()`, `set_tracing_disabled(True)` at module level
-- [ ] T004 [P] Create backend/tests/test_agent_config.py — unit tests: verify client creation with correct base_url and api_key, verify all 3 agents exist with correct names and instructions, verify `run_agent()` calls `Runner.run()` and returns `final_output`, verify `embed()` calls `_client.embeddings.create()` and returns list of floats, verify missing `GOOGLE_API_KEY` raises or logs clearly
+- [X] T003 Create backend/services/agent_config.py — shared `AsyncOpenAI` client pointing at `https://generativelanguage.googleapis.com/v1beta/openai/` with `GOOGLE_API_KEY`, shared `OpenAIChatCompletionsModel` for `gemini-2.5-flash`, three `Agent` instances (tutor, personalization, translation) with system prompts extracted from current services, async `embed(text) -> list[float]` using `gemini-embedding-001` via same client, async `run_agent(agent, input) -> str` helper wrapping `Runner.run()`, `set_tracing_disabled(True)` at module level
+- [X] T004 [P] Create backend/tests/test_agent_config.py — unit tests: verify client creation with correct base_url and api_key, verify all 3 agents exist with correct names and instructions, verify `run_agent()` calls `Runner.run()` and returns `final_output`, verify `embed()` calls `_client.embeddings.create()` and returns list of floats, verify missing `GOOGLE_API_KEY` raises or logs clearly
 
 **Checkpoint**: `python -m pytest tests/test_agent_config.py -v` passes. Foundation ready — user story implementation can now begin.
 
@@ -47,8 +47,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T005 [US2] Migrate backend/rag_service.py — remove `from google import genai` and `from services.llm_client import get_llm_client, AllProvidersExhaustedError`; import `embed` and `run_agent` and `tutor_agent` from `services.agent_config`; replace sync `embed()` function body with call to `await agent_config.embed(text)` (function becomes async); in `generate_answer()` replace `llm = get_llm_client(); answer = await llm.generate(prompt=..., system=..., ...)` with `answer = await run_agent(tutor_agent, input=prompt)`; remove `_genai_client` module-level singleton; keep Qdrant client, SYSTEM_PROMPT (move to agent_config tutor instructions), `retrieve()` unchanged
-- [ ] T006 [US2] Update chat endpoint error handling in backend/main.py — remove `from services.llm_client import AllProvidersExhaustedError` inside except block; replace `isinstance(e, AllProvidersExhaustedError)` check with `import openai; isinstance(e, openai.APIError)` for 503; add `isinstance(e, openai.RateLimitError)` check for 429 before generic 503
+- [X] T005 [US2] Migrate backend/rag_service.py — remove `from google import genai` and `from services.llm_client import get_llm_client, AllProvidersExhaustedError`; import `embed` and `run_agent` and `tutor_agent` from `services.agent_config`; replace sync `embed()` function body with call to `await agent_config.embed(text)` (function becomes async); in `generate_answer()` replace `llm = get_llm_client(); answer = await llm.generate(prompt=..., system=..., ...)` with `answer = await run_agent(tutor_agent, input=prompt)`; remove `_genai_client` module-level singleton; keep Qdrant client, SYSTEM_PROMPT (move to agent_config tutor instructions), `retrieve()` unchanged
+- [X] T006 [US2] Update chat endpoint error handling in backend/main.py — remove `from services.llm_client import AllProvidersExhaustedError` inside except block; replace `isinstance(e, AllProvidersExhaustedError)` check with `import openai; isinstance(e, openai.APIError)` for 503; add `isinstance(e, openai.RateLimitError)` check for 429 before generic 503
 
 **Checkpoint**: `POST /api/chat` works end-to-end via tutor agent. `python -m pytest tests/test_chat_api.py -v` passes (test_chat_api.py mocks `rag_service.generate_answer` which has same interface — no test changes needed).
 
@@ -62,8 +62,8 @@
 
 ### Implementation for User Story 3
 
-- [ ] T007 [P] [US3] Migrate backend/services/personalization_service.py — remove `from services.llm_client import get_llm_client`; import `run_agent` and `personalization_agent` from `services.agent_config`; in `personalize_chapter()` replace `llm = get_llm_client(); personalised_text = await llm.generate(prompt=..., system=..., ...)` with `personalised_text = await run_agent(personalization_agent, input=prompt)`
-- [ ] T008 [US3] Update backend/routes/personalize.py error handling — remove `from services.llm_client import AllProvidersExhaustedError`; replace `except AllProvidersExhaustedError:` with `except openai.APIError:` (import `openai` at top); keep same 503 response detail message
+- [X] T007 [P] [US3] Migrate backend/services/personalization_service.py — remove `from services.llm_client import get_llm_client`; import `run_agent` and `personalization_agent` from `services.agent_config`; in `personalize_chapter()` replace `llm = get_llm_client(); personalised_text = await llm.generate(prompt=..., system=..., ...)` with `personalised_text = await run_agent(personalization_agent, input=prompt)`
+- [X] T008 [US3] Update backend/routes/personalize.py error handling — remove `from services.llm_client import AllProvidersExhaustedError`; replace `except AllProvidersExhaustedError:` with `except openai.APIError:` (import `openai` at top); keep same 503 response detail message
 
 **Checkpoint**: `POST /api/personalize` works end-to-end via personalization agent.
 
@@ -77,8 +77,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T009 [P] [US4] Migrate backend/services/translation_service.py — remove `from services.llm_client import get_llm_client`; import `run_agent` and `translation_agent` from `services.agent_config`; in `translate_to_urdu()` replace `llm = get_llm_client(); translated_prose = await llm.generate(prompt=..., system=..., ...)` with `translated_prose = await run_agent(translation_agent, input=prompt)`
-- [ ] T010 [US4] Update backend/routes/translate.py error handling — remove `from services.llm_client import AllProvidersExhaustedError`; replace `except AllProvidersExhaustedError:` with `except openai.APIError:` (import `openai` at top); keep same 503 response detail message
+- [X] T009 [P] [US4] Migrate backend/services/translation_service.py — remove `from services.llm_client import get_llm_client`; import `run_agent` and `translation_agent` from `services.agent_config`; in `translate_to_urdu()` replace `llm = get_llm_client(); translated_prose = await llm.generate(prompt=..., system=..., ...)` with `translated_prose = await run_agent(translation_agent, input=prompt)`
+- [X] T010 [US4] Update backend/routes/translate.py error handling — remove `from services.llm_client import AllProvidersExhaustedError`; replace `except AllProvidersExhaustedError:` with `except openai.APIError:` (import `openai` at top); keep same 503 response detail message
 
 **Checkpoint**: `POST /api/translate` works end-to-end via translation agent.
 
@@ -92,13 +92,13 @@
 
 ### Implementation for User Story 5
 
-- [ ] T011 [P] [US5] Update backend/tests/test_personalization_service.py — change mock target from `"services.personalization_service.get_llm_client"` to `"services.personalization_service.run_agent"`; update mock setup: instead of `mock_llm = MagicMock(); mock_llm.generate = AsyncMock(return_value=...)`, use `mock_run_agent = AsyncMock(return_value="personalised text...")`; adjust assertions accordingly
-- [ ] T012 [P] [US5] Update backend/tests/test_translation_service.py — change mock target from `"services.translation_service.get_llm_client"` to `"services.translation_service.run_agent"`; update mock setup: instead of `mock_llm = MagicMock(); mock_llm.generate = AsyncMock(return_value=...)`, use `mock_run_agent = AsyncMock(return_value="translated text...")`; adjust assertions accordingly
-- [ ] T013 [P] [US5] Update backend/tests/test_translate_api.py — in `test_all_providers_exhausted_returns_503`: replace `from services.llm_client import AllProvidersExhaustedError` with `import openai`; change `side_effect=AllProvidersExhaustedError(...)` to `side_effect=openai.APIError(message="...", response=None, body=None)` on mock of `routes.translate.translate_to_urdu`
-- [ ] T014 [P] [US5] Update backend/tests/test_personalize_cache.py — in `test_all_providers_exhausted_returns_503`: replace `from services.llm_client import AllProvidersExhaustedError` with `import openai`; change `side_effect=AllProvidersExhaustedError(...)` to `side_effect=openai.APIError(message="...", response=None, body=None)` on mock of `routes.personalize.personalize_chapter`
-- [ ] T015 [P] [US5] Delete backend/services/llm_client.py (406-line old failover chain — GeminiProvider, GroqProvider, OpenAIProvider, LLMClient, RateLimitTracker, AllProvidersExhaustedError, TransientLLMError)
-- [ ] T016 [P] [US5] Delete backend/tests/test_llm_client.py (15 tests for the old LLM client — no longer needed)
-- [ ] T017 [US5] Run full test suite `python -m pytest tests/ -v` and fix any remaining mock mismatches or import errors until all tests pass
+- [X] T011 [P] [US5] Update backend/tests/test_personalization_service.py — change mock target from `"services.personalization_service.get_llm_client"` to `"services.personalization_service.run_agent"`; update mock setup: instead of `mock_llm = MagicMock(); mock_llm.generate = AsyncMock(return_value=...)`, use `mock_run_agent = AsyncMock(return_value="personalised text...")`; adjust assertions accordingly
+- [X] T012 [P] [US5] Update backend/tests/test_translation_service.py — change mock target from `"services.translation_service.get_llm_client"` to `"services.translation_service.run_agent"`; update mock setup: instead of `mock_llm = MagicMock(); mock_llm.generate = AsyncMock(return_value=...)`, use `mock_run_agent = AsyncMock(return_value="translated text...")`; adjust assertions accordingly
+- [X] T013 [P] [US5] Update backend/tests/test_translate_api.py — in `test_all_providers_exhausted_returns_503`: replace `from services.llm_client import AllProvidersExhaustedError` with `import openai`; change `side_effect=AllProvidersExhaustedError(...)` to `side_effect=openai.APIError(message="...", response=None, body=None)` on mock of `routes.translate.translate_to_urdu`
+- [X] T014 [P] [US5] Update backend/tests/test_personalize_cache.py — in `test_all_providers_exhausted_returns_503`: replace `from services.llm_client import AllProvidersExhaustedError` with `import openai`; change `side_effect=AllProvidersExhaustedError(...)` to `side_effect=openai.APIError(message="...", response=None, body=None)` on mock of `routes.personalize.personalize_chapter`
+- [X] T015 [P] [US5] Delete backend/services/llm_client.py (406-line old failover chain — GeminiProvider, GroqProvider, OpenAIProvider, LLMClient, RateLimitTracker, AllProvidersExhaustedError, TransientLLMError)
+- [X] T016 [P] [US5] Delete backend/tests/test_llm_client.py (15 tests for the old LLM client — no longer needed)
+- [X] T017 [US5] Run full test suite `python -m pytest tests/ -v` and fix any remaining mock mismatches or import errors until all tests pass
 
 **Checkpoint**: All tests pass. `grep -r "llm_client" backend/ --include="*.py"` returns zero hits in production code. Net test count ≥ 119 (lost 15 from test_llm_client, gained ~5–8 from test_agent_config).
 
@@ -108,9 +108,9 @@
 
 **Purpose**: Final verification and documentation validation.
 
-- [ ] T018 [P] Verify no old references remain — run `grep -rn "llm_client\|AllProvidersExhaustedError\|TransientLLMError\|get_llm_client\|google.genai\|from google import genai\|from groq" backend/ --include="*.py"` and confirm zero matches in non-test code
-- [ ] T019 [P] Verify dependency cleanup — confirm `groq` and `google-genai` are NOT in installed packages (`uv pip list | grep -i "groq\|google-genai"` returns empty)
-- [ ] T020 Run quickstart.md validation — start backend (`uvicorn main:app --port 8000`), smoke test all endpoints: `GET /`, `POST /api/chat`, `POST /api/translate`, `POST /api/personalize`; verify responses match API contracts
+- [X] T018 [P] Verify no old references remain — run `grep -rn "llm_client\|AllProvidersExhaustedError\|TransientLLMError\|get_llm_client\|google.genai\|from google import genai\|from groq" backend/ --include="*.py"` and confirm zero matches in non-test code
+- [X] T019 [P] Verify dependency cleanup — confirm `groq` and `google-genai` are NOT in installed packages (`uv pip list | grep -i "groq\|google-genai"` returns empty)
+- [X] T020 Run quickstart.md validation — start backend (`uvicorn main:app --port 8000`), smoke test all endpoints: `GET /`, `POST /api/chat`, `POST /api/translate`, `POST /api/personalize`; verify responses match API contracts
 
 **Checkpoint**: All success criteria SC-001 through SC-007 verified.
 

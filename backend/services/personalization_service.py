@@ -13,7 +13,7 @@ import pathlib
 
 from db import get_pool
 from services.cache_service import get_cached, set_cached
-from services.llm_client import get_llm_client
+from services.agent_config import run_agent, personalization_agent
 from services.translation_service import extract_code_blocks
 
 # ---------------------------------------------------------------------------
@@ -140,17 +140,11 @@ async def personalize_chapter(chapter_slug: str, user_id: int) -> dict[str, str]
     if cached is not None:
         return {"personalized_content": cached}
 
-    # 4. Extract code blocks, build prompt, call LLMClient with failover
+    # 4. Extract code blocks, build prompt, call Agent
     _prose, blocks = extract_code_blocks(chapter_md)
     prompt: str = build_personalization_prompt(chapter_md, profile)
 
-    llm = get_llm_client()
-    personalised_text: str = await llm.generate(
-        prompt=prompt,
-        system="You are an AI tutor. Adapt textbook content for the student profile.",
-        max_tokens=4096,
-        temperature=0.4,
-    )
+    personalised_text: str = await run_agent(personalization_agent, input=prompt)
 
     # 5. Re-insert original code blocks at placeholder positions
     for idx, block in enumerate(blocks):

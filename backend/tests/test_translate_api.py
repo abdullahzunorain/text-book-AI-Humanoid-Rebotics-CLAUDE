@@ -184,9 +184,14 @@ class TestTranslateEndpointContract:
     @patch.dict(os.environ, _JWT_ENV)
     def test_all_providers_exhausted_returns_503(self, mock_translate: AsyncMock) -> None:
         """POST /api/translate when all LLM providers fail → 503."""
-        from services.llm_client import AllProvidersExhaustedError
+        import httpx
+        import openai
 
-        mock_translate.side_effect = AllProvidersExhaustedError("All providers exhausted")
+        mock_translate.side_effect = openai.APIError(
+            message="All providers exhausted",
+            request=httpx.Request("POST", "https://example.com"),
+            body=None,
+        )
 
         client.cookies.set("token", _get_auth_token())
         response = client.post(

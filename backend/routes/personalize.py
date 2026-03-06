@@ -14,8 +14,8 @@ from fastapi import APIRouter, HTTPException, Request
 from jose import ExpiredSignatureError, JWTError
 from pydantic import BaseModel, Field
 
+import openai
 from auth_utils import decode_token
-from services.llm_client import AllProvidersExhaustedError
 from services.personalization_service import personalize_chapter
 
 router: APIRouter = APIRouter()
@@ -77,7 +77,7 @@ async def personalize_endpoint(
         )
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Chapter not found")
-    except AllProvidersExhaustedError:
+    except openai.APIError:
         raise HTTPException(
             status_code=503,
             detail="All AI providers are temporarily unavailable. Please try again later.",

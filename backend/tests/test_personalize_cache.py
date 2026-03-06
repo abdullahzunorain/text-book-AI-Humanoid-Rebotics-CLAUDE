@@ -95,9 +95,14 @@ class TestPersonalization503:
         mock_personalize: AsyncMock,
     ) -> None:
         """POST /api/personalize when all LLM providers fail → 503."""
-        from services.llm_client import AllProvidersExhaustedError
+        import httpx
+        import openai
 
-        mock_personalize.side_effect = AllProvidersExhaustedError("All providers exhausted")
+        mock_personalize.side_effect = openai.APIError(
+            message="All providers exhausted",
+            request=httpx.Request("POST", "https://example.com"),
+            body=None,
+        )
 
         from auth_utils import create_token
 

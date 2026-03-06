@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 from pydantic import BaseModel, Field
 
 from auth_utils import decode_token
-from services.llm_client import AllProvidersExhaustedError
+import openai
 from services.translation_service import translate_to_urdu
 
 router: APIRouter = APIRouter()
@@ -142,7 +142,7 @@ async def translate_chapter(
             user_id=user_id,
             chapter_slug=slug,
         )
-    except AllProvidersExhaustedError:
+    except openai.APIError:
         raise HTTPException(
             status_code=503,
             detail="All AI providers are temporarily unavailable. Please try again later.",

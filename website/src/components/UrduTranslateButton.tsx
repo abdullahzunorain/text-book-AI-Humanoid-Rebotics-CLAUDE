@@ -46,6 +46,7 @@ export default function UrduTranslateButton({
       const response = await fetch(`${API_URL}/api/translate`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
+        credentials: 'include',
         body: JSON.stringify({chapter_slug: chapterSlug}),
       });
 

@@ -129,12 +129,9 @@ class TestPersonalizeChapter:
             "More adapted explanation."
         )
 
-        mock_llm = AsyncMock()
-        mock_llm.generate = AsyncMock(return_value=llm_response)
-
         with (
             patch("services.personalization_service.get_pool", return_value=mock_pool),
-            patch("services.personalization_service.get_llm_client", return_value=mock_llm),
+            patch("services.personalization_service.run_agent", new_callable=AsyncMock, return_value=llm_response),
             patch("services.personalization_service.get_cached", new_callable=AsyncMock, return_value=None),
             patch("services.personalization_service.set_cached", new_callable=AsyncMock),
             patch(
@@ -171,12 +168,9 @@ class TestPersonalizeChapter:
             "More adapted text."
         )
 
-        mock_llm = AsyncMock()
-        mock_llm.generate = AsyncMock(return_value=llm_response)
-
         with (
             patch("services.personalization_service.get_pool", return_value=mock_pool),
-            patch("services.personalization_service.get_llm_client", return_value=mock_llm),
+            patch("services.personalization_service.run_agent", new_callable=AsyncMock, return_value=llm_response),
             patch("services.personalization_service.get_cached", new_callable=AsyncMock, return_value=None),
             patch("services.personalization_service.set_cached", new_callable=AsyncMock),
             patch(
@@ -207,12 +201,9 @@ class TestPersonalizeChapter:
 
         llm_response: str = "Beginner-friendly explanation.\n\n{{CODE_BLOCK_0}}"
 
-        mock_llm = AsyncMock()
-        mock_llm.generate = AsyncMock(return_value=llm_response)
-
         with (
             patch("services.personalization_service.get_pool", return_value=mock_pool),
-            patch("services.personalization_service.get_llm_client", return_value=mock_llm),
+            patch("services.personalization_service.run_agent", new_callable=AsyncMock, return_value=llm_response),
             patch("services.personalization_service.get_cached", new_callable=AsyncMock, return_value=None),
             patch("services.personalization_service.set_cached", new_callable=AsyncMock),
             patch(

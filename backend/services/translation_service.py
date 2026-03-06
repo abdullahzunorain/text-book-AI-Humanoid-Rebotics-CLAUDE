@@ -12,7 +12,7 @@ from __future__ import annotations
 import re
 
 from services.cache_service import get_cached, set_cached
-from services.llm_client import get_llm_client
+from services.agent_config import run_agent, translation_agent
 
 # ---------------------------------------------------------------------------
 # Code-block extraction
@@ -94,15 +94,9 @@ async def translate_to_urdu(
             "original_code_blocks": blocks,
         }
 
-    # Call LLM via failover client
-    llm = get_llm_client()
+    # Call Translation Agent
     prompt = _TRANSLATE_PROMPT_TEMPLATE.format(prose=prose)
-    translated_prose: str = await llm.generate(
-        prompt=prompt,
-        system=_TRANSLATE_SYSTEM,
-        max_tokens=4096,
-        temperature=0.3,
-    )
+    translated_prose: str = await run_agent(translation_agent, input=prompt)
 
     # Re-insert original code blocks at placeholder positions
     for idx, block in enumerate(blocks):

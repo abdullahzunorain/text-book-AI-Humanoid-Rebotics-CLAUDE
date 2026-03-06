@@ -116,8 +116,14 @@ async def chat(request_body: ChatRequest, request: Request):
         )
         return ChatResponse(answer=result["answer"], sources=result["sources"])
     except Exception as e:
-        from services.llm_client import AllProvidersExhaustedError
-        if isinstance(e, AllProvidersExhaustedError):
+        import openai
+        if isinstance(e, openai.RateLimitError):
+            raise HTTPException(
+                status_code=429,
+                detail="AI service rate limit reached. Please wait a moment and try again.",
+                headers={"Retry-After": "60"},
+            )
+        if isinstance(e, openai.APIError):
             raise HTTPException(
                 status_code=503,
                 detail="Service temporarily unavailable. Please try again later.",
