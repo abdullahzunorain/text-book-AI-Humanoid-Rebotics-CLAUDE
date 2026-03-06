@@ -83,12 +83,14 @@ class TestTranslateToUrdu:
             "```python\nimport rclpy\n```\n\nMore content here."
         )
 
-        with patch(
-            "services.translation_service._call_gemini_translate",
-            new_callable=AsyncMock,
-            return_value="# گیزبو کی بنیادیں\n\nگیزبو ایک سمیولیٹر ہے۔\n\n{{CODE_BLOCK_0}}\n\nمزید مواد یہاں۔",
-        ):
-            result: dict = await translate_to_urdu(markdown)
+        mock_run_agent = AsyncMock(
+            return_value="# گیزبو کی بنیادیں\n\nگیزبو ایک سمیولیٹر ہے۔\n\n{{CODE_BLOCK_0}}\n\nمزید مواد یہاں۔"
+        )
+
+        with patch("services.translation_service.run_agent", mock_run_agent), \
+             patch("services.translation_service.get_cached", new_callable=AsyncMock, return_value=None), \
+             patch("services.translation_service.set_cached", new_callable=AsyncMock):
+            result: dict = await translate_to_urdu(markdown, user_id=1, chapter_slug="test/chapter")
 
         assert "translated_content" in result
         assert "original_code_blocks" in result
@@ -103,12 +105,14 @@ class TestTranslateToUrdu:
         code_block: str = "```python\nimport rclpy\nfrom rclpy.node import Node\n```"
         markdown: str = f"# Test\n\nSome text.\n\n{code_block}\n\nEnd."
 
-        with patch(
-            "services.translation_service._call_gemini_translate",
-            new_callable=AsyncMock,
-            return_value="# ٹیسٹ\n\nکچھ متن۔\n\n{{CODE_BLOCK_0}}\n\nاختتام۔",
-        ):
-            result: dict = await translate_to_urdu(markdown)
+        mock_run_agent = AsyncMock(
+            return_value="# ٹیسٹ\n\nکچھ متن۔\n\n{{CODE_BLOCK_0}}\n\nاختتام۔"
+        )
+
+        with patch("services.translation_service.run_agent", mock_run_agent), \
+             patch("services.translation_service.get_cached", new_callable=AsyncMock, return_value=None), \
+             patch("services.translation_service.set_cached", new_callable=AsyncMock):
+            result: dict = await translate_to_urdu(markdown, user_id=1, chapter_slug="test/chapter")
 
         assert code_block in result["translated_content"]
         assert code_block in result["original_code_blocks"]
@@ -122,13 +126,34 @@ class TestTranslateToUrdu:
         block_b: str = "```bash\necho hello\n```"
         markdown: str = f"Start\n\n{block_a}\n\nMiddle\n\n{block_b}\n\nEnd"
 
-        with patch(
-            "services.translation_service._call_gemini_translate",
-            new_callable=AsyncMock,
-            return_value="شروع\n\n{{CODE_BLOCK_0}}\n\nدرمیان\n\n{{CODE_BLOCK_1}}\n\nاختتام",
-        ):
-            result: dict = await translate_to_urdu(markdown)
+        mock_run_agent = AsyncMock(
+            return_value="شروع\n\n{{CODE_BLOCK_0}}\n\nدرمیان\n\n{{CODE_BLOCK_1}}\n\nاختتام"
+        )
+
+        with patch("services.translation_service.run_agent", mock_run_agent), \
+             patch("services.translation_service.get_cached", new_callable=AsyncMock, return_value=None), \
+             patch("services.translation_service.set_cached", new_callable=AsyncMock):
+            result: dict = await translate_to_urdu(markdown, user_id=1, chapter_slug="test/chapter")
 
         assert block_a in result["translated_content"]
         assert block_b in result["translated_content"]
         assert len(result["original_code_blocks"]) == 2
+
+    @pytest.mark.asyncio
+    async def test_cached_result_skips_llm(self) -> None:
+        """When cache has content, LLM is NOT called."""
+        from services.translation_service import translate_to_urdu
+
+        markdown: str = "# Test\n\n```python\nx=1\n```\n\nEnd."
+        cached_content = "# ٹیسٹ\n\n```python\nx=1\n```\n\nاختتام۔"
+
+        mock_run_agent = AsyncMock()
+
+        with patch("services.translation_service.run_agent", mock_run_agent), \
+             patch("services.translation_service.get_cached", new_callable=AsyncMock, return_value=cached_content), \
+             patch("services.translation_service.set_cached", new_callable=AsyncMock) as mock_set:
+            result: dict = await translate_to_urdu(markdown, user_id=1, chapter_slug="test/chapter")
+
+        assert result["translated_content"] == cached_content
+        mock_run_agent.assert_not_called()
+        mock_set.assert_not_called()

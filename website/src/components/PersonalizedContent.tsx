@@ -43,7 +43,13 @@ export default function PersonalizedContent({
   onShowOriginal,
 }: PersonalizedContentProps): React.JSX.Element {
   const renderContent = (): React.JSX.Element[] => {
-    const parts = personalizedContent.split(/(```[\s\S]*?```)/g);
+    // Strip YAML frontmatter (---\n...\n---) if present
+    let stripped = personalizedContent.replace(/^---[\s\S]*?---\s*\n?/, '');
+    // Strip wrapping code fences (```markdown\n...\n```) that LLMs sometimes add
+    stripped = stripped.replace(/^\s*```(?:markdown|md)?\s*\n([\s\S]*?)\n\s*```\s*$/, '$1');
+    // Strip frontmatter again in case it was inside the code fence
+    stripped = stripped.replace(/^---[\s\S]*?---\s*\n?/, '');
+    const parts = stripped.split(/(```[\s\S]*?```)/g);
     return parts.map((part, index) => {
       if (part.startsWith('```')) {
         // Extract language and code

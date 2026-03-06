@@ -18,7 +18,7 @@ from qdrant_client.models import Distance, VectorParams, PointStruct
 
 load_dotenv()
 
-client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+client = genai.Client(api_key=os.environ["GOOGLE_API_KEY"])
 
 qdrant = QdrantClient(
     url=os.environ["QDRANT_URL"],
@@ -29,7 +29,7 @@ qdrant = QdrantClient(
 COLLECTION_NAME = "book_content"
 EMBEDDING_MODEL = "gemini-embedding-001"
 VECTOR_SIZE = 3072
-MAX_TOKENS = 400
+MAX_TOKENS = 500
 DOCS_DIR = os.path.join(os.path.dirname(__file__), "..", "website", "docs")
 
 
@@ -71,6 +71,7 @@ def chunk_markdown(filepath: str, max_tokens: int = MAX_TOKENS) -> list[dict]:
                     "page_title": meta.get("title", os.path.basename(filepath)),
                     "chapter": os.path.basename(filepath).replace(".md", ""),
                     "module": _infer_module(filepath),
+                    "chapter_slug": _compute_chapter_slug(filepath),
                     "token_count": len(tokens),
                 }
             )
@@ -91,6 +92,7 @@ def chunk_markdown(filepath: str, max_tokens: int = MAX_TOKENS) -> list[dict]:
                             ),
                             "chapter": os.path.basename(filepath).replace(".md", ""),
                             "module": _infer_module(filepath),
+                            "chapter_slug": _compute_chapter_slug(filepath),
                             "token_count": current_count,
                         }
                     )
@@ -107,6 +109,7 @@ def chunk_markdown(filepath: str, max_tokens: int = MAX_TOKENS) -> list[dict]:
                         "page_title": meta.get("title", os.path.basename(filepath)),
                         "chapter": os.path.basename(filepath).replace(".md", ""),
                         "module": _infer_module(filepath),
+                        "chapter_slug": _compute_chapter_slug(filepath),
                         "token_count": current_count,
                     }
                 )
@@ -117,9 +120,22 @@ def chunk_markdown(filepath: str, max_tokens: int = MAX_TOKENS) -> list[dict]:
 def _infer_module(filepath: str) -> str:
     if "module1" in filepath:
         return "module1-ros2"
+    elif "module2" in filepath:
+        return "module2-simulation"
+    elif "module3" in filepath:
+        return "module3-isaac"
+    elif "module4" in filepath:
+        return "module4-vla"
     elif "intro" in filepath:
         return "introduction"
     return "unknown"
+
+
+def _compute_chapter_slug(filepath: str) -> str:
+    """Compute a chapter slug relative to the docs directory for cache key matching."""
+    rel = os.path.relpath(filepath, os.path.abspath(DOCS_DIR))
+    slug = rel.replace(".md", "").replace("/index", "")
+    return slug
 
 
 def embed_text(text: str) -> list[float]:
@@ -174,6 +190,7 @@ def index_all():
                     "module": chunk["module"],
                     "page_title": chunk["page_title"],
                     "heading": chunk["heading"],
+                    "chapter_slug": chunk["chapter_slug"],
                 },
             )
         )

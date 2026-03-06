@@ -1,5 +1,5 @@
 """
-Personalization service: adapt chapter content to user's educational background via Gemini.
+Personalization service: adapt chapter content to user's educational background via LLMClient.
 
 Public API:
     build_personalization_prompt(chapter_md, profile) -> str
@@ -11,9 +11,9 @@ from __future__ import annotations
 import os
 import pathlib
 
-from google import genai
-
 from db import get_pool
+from services.cache_service import get_cached, set_cached
+from services.agent_config import run_agent, personalization_agent
 from services.translation_service import extract_code_blocks
 
 # ---------------------------------------------------------------------------
@@ -80,21 +80,6 @@ def build_personalization_prompt(chapter_md: str, profile: dict[str, str | bool]
 
 
 # ---------------------------------------------------------------------------
-# Gemini helper (internal)
-# ---------------------------------------------------------------------------
-
-
-async def _call_gemini_personalize(prompt: str) -> str:
-    """Call Gemini 2.5-flash with the personalization prompt."""
-    client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY", ""))
-    response = await client.aio.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=prompt,
-    )
-    return response.text or ""
-
-
-# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
@@ -115,12 +100,31 @@ async def personalize_chapter(chapter_slug: str, user_id: int) -> dict[str, str]
     Returns:
         Dict with ``personalized_content`` (full personalised markdown with code blocks).
     """
-    # 1. Read chapter file — try {slug}.md first, then {slug}/index.md
-    chapter_path: pathlib.Path = _DOCS_ROOT / f"{chapter_slug}.md"
-    if not chapter_path.is_file():
-        chapter_path = _DOCS_ROOT / chapter_slug / "index.md"
-    with open(chapter_path, encoding="utf-8") as fh:
-        chapter_md: str = fh.read()
+    # 1. Read chapter file — 3-step resolution to handle Docusaurus numeric-prefix stripping:
+    #   a. Exact:  docs/{slug}.md
+    #   b. Index:  docs/{slug}/index.md
+    #   c. Prefix: docs/parent/*-{basename}.md  (e.g. 01-architecture.md for slug 'architecture')
+    _candidates_to_try = [
+        _DOCS_ROOT / f"{chapter_slug}.md",
+        _DOCS_ROOT / chapter_slug / "index.md",
+    ]
+    chapter_md: str | None = None
+    for _candidate in _candidates_to_try:
+        try:
+            with open(_candidate, encoding="utf-8") as fh:
+                chapter_md = fh.read()
+            break
+        except FileNotFoundError:
+            continue
+    if chapter_md is None:
+        # Docusaurus strips numeric prefixes ("01-") from URLs but files keep them
+        _parent = _DOCS_ROOT / pathlib.Path(chapter_slug).parent
+        _basename = pathlib.Path(chapter_slug).name
+        _prefix_matches = sorted(_parent.glob(f"*-{_basename}.md"))
+        if not _prefix_matches:
+            raise FileNotFoundError(f"Chapter not found: {chapter_slug}")
+        with open(_prefix_matches[0], encoding="utf-8") as fh:
+            chapter_md = fh.read()
 
     # 2. Fetch user background
     pool = get_pool()
@@ -131,15 +135,30 @@ async def personalize_chapter(chapter_slug: str, user_id: int) -> dict[str, str]
     )
     profile: dict[str, str | bool] = dict(row) if row else {}
 
-    # 3. Extract code blocks, build prompt, call Gemini
+    # 3. Check cache first (FR-034)
+    cached = await get_cached(user_id, chapter_slug, "personalization")
+    if cached is not None:
+        return {"personalized_content": cached}
+
+    # 4. Extract code blocks, build prompt, call Agent
     _prose, blocks = extract_code_blocks(chapter_md)
     prompt: str = build_personalization_prompt(chapter_md, profile)
-    personalised_text: str = await _call_gemini_personalize(prompt)
 
-    # 4. Re-insert original code blocks at placeholder positions
+    personalised_text: str = await run_agent(personalization_agent, input=prompt)
+
+    # 5. Re-insert original code blocks at placeholder positions
     for idx, block in enumerate(blocks):
         personalised_text = personalised_text.replace(
             f"{{{{CODE_BLOCK_{idx}}}}}", block
         )
+
+    # 6. Cache the result (FR-033)
+    await set_cached(
+        user_id=user_id,
+        chapter_slug=chapter_slug,
+        cache_type="personalization",
+        content=personalised_text,
+        metadata={"profile": {k: str(v) for k, v in profile.items()}},
+    )
 
     return {"personalized_content": personalised_text}

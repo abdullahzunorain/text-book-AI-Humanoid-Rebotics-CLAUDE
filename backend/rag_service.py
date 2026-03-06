@@ -1,13 +1,16 @@
 """
-RAG service: embed user question, retrieve from Qdrant, generate answer via Gemini.
+RAG service: embed user question, retrieve from Qdrant, generate answer via Tutor Agent.
+
+Uses Gemini for embeddings and the Tutor Agent (OpenAI Agents SDK) for generation,
+both through Google's OpenAI-compatible endpoint.
+Optionally saves chat history for authenticated users.
 """
 import os
-from google import genai
-from google.genai import types
+
 from qdrant_client import QdrantClient
 
-# Google GenAI client (native API for both embeddings and chat)
-_genai_client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY", ""))
+from services.agent_config import embed as agent_embed, run_agent, tutor_agent
+from services.chat_history_service import save_message as save_chat_message
 
 # Qdrant client
 _qdrant = QdrantClient(
@@ -17,26 +20,11 @@ _qdrant = QdrantClient(
 )
 
 COLLECTION_NAME = "book_content"
-EMBEDDING_MODEL = "gemini-embedding-001"
-CHAT_MODEL = "gemini-2.0-flash"
-
-SYSTEM_PROMPT = """You are a helpful study companion for the Physical AI & Humanoid Robotics textbook.\
- Answer questions based ONLY on the provided textbook context. If the context doesn't contain \
-enough information to answer, say so honestly. Keep answers concise, accurate, and educational.\
- When referencing specific chapters or sections, mention them by name.\
- Stay on topic — only answer questions related to Physical AI, ROS 2, robotics, and the textbook content.\
- If a question is clearly off-topic, politely redirect: \
-"I'm designed to help with the Physical AI textbook content. Could you ask something about the topics covered?"
-"""
 
 
-def embed(text: str) -> list[float]:
-    """Embed text using Gemini gemini-embedding-001 via native Google GenAI SDK."""
-    result = _genai_client.models.embed_content(
-        model=EMBEDDING_MODEL,
-        contents=text,
-    )
-    return result.embeddings[0].values
+async def embed(text: str) -> list[float]:
+    """Embed text using Gemini gemini-embedding-001 via OpenAI-compatible endpoint."""
+    return await agent_embed(text)
 
 
 def retrieve(query_embedding: list[float], limit: int = 5) -> list[dict]:
@@ -59,10 +47,19 @@ def retrieve(query_embedding: list[float], limit: int = 5) -> list[dict]:
     ]
 
 
-def generate_answer(question: str, selected_text: str | None = None) -> dict:
-    """Full RAG pipeline: embed → retrieve → generate."""
-    # 1. Embed the question
-    query_embedding = embed(question)
+async def generate_answer(question: str, selected_text: str | None = None, user_id: int | None = None) -> dict:
+    """Full RAG pipeline: embed → retrieve → generate via Tutor Agent.
+
+    Args:
+        question: The user's question.
+        selected_text: Optional highlighted text for scoped answers.
+        user_id: Optional authenticated user ID (enables chat history saving).
+
+    Returns:
+        Dict with 'answer' and 'sources' keys.
+    """
+    # 1. Embed the question (now async via OpenAI-compatible endpoint)
+    query_embedding = await embed(question)
 
     # 2. Retrieve relevant chunks
     chunks = retrieve(query_embedding)
@@ -89,17 +86,25 @@ def generate_answer(question: str, selected_text: str | None = None) -> dict:
             f"Question about this passage: {question}"
         )
 
-    # 5. Call Gemini via native GenAI SDK
-    response = _genai_client.models.generate_content(
-        model=CHAT_MODEL,
-        contents=f"Textbook context:\n{context}\n\n{user_message}",
-        config=types.GenerateContentConfig(
-            system_instruction=SYSTEM_PROMPT,
-            max_output_tokens=1024,
-            temperature=0.3,
-        ),
-    )
+    # 5. Call Tutor Agent via OpenAI Agents SDK
+    prompt = f"Textbook context:\n{context}\n\n{user_message}"
+    answer = await run_agent(tutor_agent, input=prompt)
 
-    answer = response.text or "I couldn't generate an answer. Please try again."
+    if not answer:
+        answer = "I couldn't generate an answer. Please try again."
+
+    # 6. Save to chat history if user is authenticated
+    if user_id is not None:
+        try:
+            await save_chat_message(
+                user_id=user_id,
+                question=question,
+                answer=answer,
+                selected_text=selected_text,
+                sources=sources,
+            )
+        except Exception:
+            # Don't fail the response if history saving fails
+            pass
 
     return {"answer": answer, "sources": sources}

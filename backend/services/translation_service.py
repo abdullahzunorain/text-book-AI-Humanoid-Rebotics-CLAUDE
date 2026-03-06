@@ -1,18 +1,47 @@
 """
-Translation service: extract code blocks from markdown, translate prose to Urdu via Gemini,
-and re-insert original code blocks unchanged.
+Translation service: extract code blocks from markdown, translate prose to Urdu via LLMClient,
+and re-insert original code blocks unchanged. Results are cached per user+chapter.
 
 Public API:
     extract_code_blocks(markdown) -> (prose_with_placeholders, code_blocks)
-    translate_to_urdu(chapter_markdown) -> {"translated_content": str, "original_code_blocks": list[str]}
+    translate_to_urdu(chapter_markdown, user_id, chapter_slug) -> {"translated_content": str, "original_code_blocks": list[str]}
 """
 
 from __future__ import annotations
 
-import os
 import re
 
-from google import genai
+from services.cache_service import get_cached, set_cached
+from services.agent_config import run_agent, translation_agent
+
+# ---------------------------------------------------------------------------
+# Frontmatter stripping
+# ---------------------------------------------------------------------------
+
+_FRONTMATTER_RE: re.Pattern[str] = re.compile(
+    r"^---\s*\n[\s\S]*?\n---\s*\n?", re.MULTILINE
+)
+
+
+def strip_frontmatter(markdown: str) -> str:
+    """Remove YAML frontmatter (---...---) from the start of markdown."""
+    return _FRONTMATTER_RE.sub("", markdown, count=1)
+
+
+# ---------------------------------------------------------------------------
+# LLM output cleanup
+# ---------------------------------------------------------------------------
+
+_WRAPPING_FENCE_RE: re.Pattern[str] = re.compile(
+    r"^\s*```(?:markdown|md)?\s*\n([\s\S]*?)\n\s*```\s*$"
+)
+
+
+def strip_wrapping_code_fence(text: str) -> str:
+    """Remove outer code-fence wrapper (```markdown ... ```) that LLMs sometimes add."""
+    m = _WRAPPING_FENCE_RE.match(text.strip())
+    return m.group(1) if m else text
+
 
 # ---------------------------------------------------------------------------
 # Code-block extraction
@@ -40,36 +69,26 @@ def extract_code_blocks(markdown: str) -> tuple[str, list[str]]:
 
 
 # ---------------------------------------------------------------------------
-# Gemini translation helper (internal)
+# Translation prompt
 # ---------------------------------------------------------------------------
 
+_TRANSLATE_SYSTEM = (
+    "You are a professional Urdu translator for educational robotics content."
+)
 
-async def _call_gemini_translate(prose: str) -> str:
-    """Call Gemini gemini-2.5-flash to translate prose to Urdu.
-
-    The prose already has code blocks replaced with {{CODE_BLOCK_N}} placeholders.
-    The prompt instructs Gemini to keep placeholders as-is.
-    """
-    client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY", ""))
-
-    prompt: str = (
-        "You are a professional Urdu translator for educational robotics content.\n"
-        "Translate the following Markdown text from English to Urdu.\n\n"
-        "RULES:\n"
-        "1. Translate ALL prose to natural, formal Urdu (Nastaliq script).\n"
-        "2. Keep ALL technical terms in English (ROS 2, Gazebo, Python, URDF, etc.).\n"
-        "3. Keep ALL markdown formatting (headers #, bold **, lists -, tables, links).\n"
-        "4. Keep ALL {{CODE_BLOCK_N}} placeholders EXACTLY as they are — do NOT translate them.\n"
-        "5. Preserve paragraph structure.\n\n"
-        "TEXT TO TRANSLATE:\n\n"
-        f"{prose}"
-    )
-
-    response = await client.aio.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=prompt,
-    )
-    return response.text or ""
+_TRANSLATE_PROMPT_TEMPLATE = (
+    "Translate the following Markdown text from English to Urdu.\n\n"
+    "RULES:\n"
+    "1. Translate ALL prose to natural, formal Urdu (Nastaliq script).\n"
+    "2. Keep ALL technical terms in English (ROS 2, Gazebo, Python, URDF, etc.).\n"
+    "3. Keep ALL markdown formatting (headers #, bold **, lists -, tables, links).\n"
+    "4. Keep ALL {{CODE_BLOCK_N}} placeholders EXACTLY as they are — do NOT translate them.\n"
+    "5. Preserve paragraph structure.\n"
+    "6. Do NOT wrap your output in code fences (``` or ```markdown). Return raw markdown ONLY.\n"
+    "7. Do NOT include any YAML frontmatter (--- ... ---) in the output.\n\n"
+    "TEXT TO TRANSLATE:\n\n"
+    "{prose}"
+)
 
 
 # ---------------------------------------------------------------------------
@@ -77,11 +96,22 @@ async def _call_gemini_translate(prose: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-async def translate_to_urdu(chapter_markdown: str) -> dict[str, str | list[str]]:
+async def translate_to_urdu(
+    chapter_markdown: str,
+    *,
+    user_id: int,
+    chapter_slug: str,
+    force_refresh: bool = False,
+) -> dict[str, str | list[str]]:
     """Translate a chapter markdown to Urdu, preserving code blocks.
+
+    Checks cache first (unless force_refresh=True); on miss, calls Translation Agent
+    and caches the result.
 
     Args:
         chapter_markdown: Full chapter markdown content.
+        user_id: Authenticated user id (for cache key).
+        chapter_slug: Chapter slug (for cache key).
 
     Returns:
         Dict with ``translated_content`` (full Urdu markdown with code blocks)
@@ -89,13 +119,39 @@ async def translate_to_urdu(chapter_markdown: str) -> dict[str, str | list[str]]
     """
     prose, blocks = extract_code_blocks(chapter_markdown)
 
-    translated_prose: str = await _call_gemini_translate(prose)
+    # Strip YAML frontmatter from prose before sending to LLM
+    prose = strip_frontmatter(prose)
+
+    # Check cache first
+    cached = await get_cached(user_id, chapter_slug, "translation")
+    if cached is not None and not force_refresh:
+        return {
+            "translated_content": cached,
+            "original_code_blocks": blocks,
+        }
+
+    # Call Translation Agent
+    prompt = _TRANSLATE_PROMPT_TEMPLATE.format(prose=prose)
+    translated_prose: str = await run_agent(translation_agent, input=prompt)
+
+    # Clean up LLM output: strip wrapping code fences and stale frontmatter
+    translated_prose = strip_wrapping_code_fence(translated_prose)
+    translated_prose = strip_frontmatter(translated_prose)
 
     # Re-insert original code blocks at placeholder positions
     for idx, block in enumerate(blocks):
         translated_prose = translated_prose.replace(
             f"{{{{CODE_BLOCK_{idx}}}}}", block
         )
+
+    # Cache the result (translation cache is never invalidated by profile update)
+    await set_cached(
+        user_id=user_id,
+        chapter_slug=chapter_slug,
+        cache_type="translation",
+        content=translated_prose,
+        metadata={},
+    )
 
     return {
         "translated_content": translated_prose,

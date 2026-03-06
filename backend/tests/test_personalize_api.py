@@ -69,7 +69,7 @@ class TestPersonalizeEndpointContract:
             json={"chapter_slug": "module-1/forward-kinematics"},
         )
         assert response.status_code == 401
-        assert "Not authenticated" in response.json()["detail"]
+        assert response.json()["detail"] == "not_authenticated"
 
     @patch.dict(os.environ, {"JWT_SECRET": "test-secret-key-for-unit-tests"})
     def test_invalid_slug_returns_400(self) -> None:

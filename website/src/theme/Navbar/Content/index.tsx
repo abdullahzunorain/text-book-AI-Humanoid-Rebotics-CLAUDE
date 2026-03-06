@@ -8,6 +8,8 @@ type Props = WrapperProps<typeof ContentType>;
 
 /**
  * Wrapper around the original Navbar/Content to inject the AuthButton.
+ * The AuthButton is positioned so it remains visible on both desktop and
+ * mobile viewports (Docusaurus hides navbar items below 996px).
  */
 export default function ContentWrapper(props: Props): React.JSX.Element {
   return (
@@ -15,7 +17,9 @@ export default function ContentWrapper(props: Props): React.JSX.Element {
       <div style={{flex: 1}}>
         <Content {...props} />
       </div>
-      <AuthButton />
+      <div className="navbar__auth-button">
+        <AuthButton />
+      </div>
     </div>
   );
 }

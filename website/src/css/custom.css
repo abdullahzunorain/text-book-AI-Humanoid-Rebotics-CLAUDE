@@ -31,3 +31,11 @@
   --ifm-color-primary-lightest: #4fddbf;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
 }
+
+/* Ensure the AuthButton is always visible, even on mobile viewports
+   where Docusaurus hides navbar items behind the hamburger menu. */
+.navbar__auth-button {
+  display: flex !important;
+  align-items: center;
+  flex-shrink: 0;
+}

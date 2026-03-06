@@ -21,8 +21,11 @@ export default function ChatbotWidget(): React.JSX.Element {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [validationMsg, setValidationMsg] = useState<string | null>(null);
+  const [selectedContext, setSelectedContext] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const historyLoadedRef = useRef(false);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -36,6 +39,39 @@ export default function ChatbotWidget(): React.JSX.Element {
     }
   }, [isOpen]);
 
+  // Fetch chat history on mount (if authenticated)
+  useEffect(() => {
+    if (!isOpen || historyLoadedRef.current) return;
+    historyLoadedRef.current = true;
+
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/chat/history?limit=50&offset=0`, {
+          credentials: 'include',
+        });
+        if (res.status === 401) return; // Not authenticated — skip
+        if (!res.ok) return;
+
+        const data = await res.json();
+        if (data.messages && data.messages.length > 0) {
+          // Convert history (newest-first from API) to chronological order
+          const historyMsgs: Message[] = [];
+          for (const msg of [...data.messages].reverse()) {
+            historyMsgs.push({ role: 'user', content: msg.question });
+            historyMsgs.push({
+              role: 'bot',
+              content: msg.answer,
+              sources: msg.sources || [],
+            });
+          }
+          setMessages(prev => [...prev, ...historyMsgs]);
+        }
+      } catch {
+        // Silently fail — history is a nice-to-have
+      }
+    })();
+  }, [isOpen, API_URL]);
+
   // Keyboard accessibility: Escape key closes the panel
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -47,14 +83,15 @@ export default function ChatbotWidget(): React.JSX.Element {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
 
-  // Listen for selected text events (US3)
+  // Listen for selected text events (US6)
   useEffect(() => {
     const handleSelection = (e: Event) => {
       const customEvent = e as CustomEvent<string>;
       const selectedText = customEvent.detail;
       if (selectedText) {
         setIsOpen(true);
-        sendMessage(`Explain this: "${selectedText}"`, selectedText);
+        setSelectedContext(selectedText);
+        setTimeout(() => inputRef.current?.focus(), 100);
       }
     };
     window.addEventListener('askAboutSelection', handleSelection);
@@ -63,9 +100,17 @@ export default function ChatbotWidget(): React.JSX.Element {
 
   const sendMessage = useCallback(async (text: string, selectedText?: string) => {
     const question = text.trim();
-    if (!question) return;
+    if (!question) {
+      setValidationMsg('Please enter a question before sending.');
+      return;
+    }
 
+    // Use selectedContext if no explicit selectedText passed
+    const contextText = selectedText || selectedContext || null;
+
+    setValidationMsg(null);
     setError(null);
+    setSelectedContext(null); // Clear after sending
     setMessages(prev => [...prev, { role: 'user', content: question }]);
     setInput('');
     setIsLoading(true);
@@ -74,9 +119,10 @@ export default function ChatbotWidget(): React.JSX.Element {
       const response = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           question,
-          selected_text: selectedText || null,
+          selected_text: contextText,
         }),
       });
 
@@ -175,12 +221,38 @@ export default function ChatbotWidget(): React.JSX.Element {
           </div>
 
           <form className="chatbot-input-area" onSubmit={handleSubmit}>
+            {selectedContext && (
+              <div className="chatbot-selected-context">
+                <span className="chatbot-context-label">📝 Selected text:</span>
+                <span className="chatbot-context-text">
+                  {selectedContext.length > 100
+                    ? selectedContext.substring(0, 100) + '...'
+                    : selectedContext}
+                </span>
+                <button
+                  type="button"
+                  className="chatbot-context-clear"
+                  onClick={() => setSelectedContext(null)}
+                  aria-label="Clear selection"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+            {validationMsg && (
+              <div className="chatbot-validation" role="alert">
+                {validationMsg}
+              </div>
+            )}
             <input
               ref={inputRef}
               type="text"
               className="chatbot-input"
               value={input}
-              onChange={e => setInput(e.target.value)}
+              onChange={e => {
+                setInput(e.target.value);
+                if (validationMsg) setValidationMsg(null);
+              }}
               onKeyDown={handleKeyDown}
               placeholder="Ask about the textbook..."
               disabled={isLoading}

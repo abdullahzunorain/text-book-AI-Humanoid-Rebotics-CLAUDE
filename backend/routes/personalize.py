@@ -11,8 +11,10 @@ import re
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
+from jose import ExpiredSignatureError, JWTError
 from pydantic import BaseModel, Field
 
+import openai
 from auth_utils import decode_token
 from services.personalization_service import personalize_chapter
 
@@ -23,15 +25,17 @@ _COOKIE_NAME: str = "token"
 
 
 def _get_user_id_from_cookie(request: Request) -> int:
-    """Extract user_id from JWT cookie. Raises 401 if missing/invalid."""
+    """Extract user_id from JWT cookie. Raises 401 with distinct detail codes."""
     token: str | None = request.cookies.get(_COOKIE_NAME)
     if not token:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+        raise HTTPException(status_code=401, detail="not_authenticated")
     try:
         payload: dict[str, Any] = decode_token(token)
         return payload["sub"]
-    except Exception:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="session_expired")
+    except (JWTError, Exception):
+        raise HTTPException(status_code=401, detail="invalid_token")
 
 
 # ---------------------------------------------------------------------------
@@ -73,6 +77,11 @@ async def personalize_endpoint(
         )
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Chapter not found")
+    except openai.APIError:
+        raise HTTPException(
+            status_code=503,
+            detail="All AI providers are temporarily unavailable. Please try again later.",
+        )
     except Exception as exc:
         err_str = str(exc)
         if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:

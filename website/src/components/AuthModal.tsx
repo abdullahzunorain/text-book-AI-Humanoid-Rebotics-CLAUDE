@@ -5,6 +5,8 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSignupSuccess: () => void;
+  /** Called after a successful signin — parent decides whether to show the questionnaire. */
+  onSigninSuccess?: () => void;
 }
 
 type Tab = 'signin' | 'signup';
@@ -13,6 +15,7 @@ export default function AuthModal({
   isOpen,
   onClose,
   onSignupSuccess,
+  onSigninSuccess,
 }: AuthModalProps): React.JSX.Element | null {
   const [tab, setTab] = useState<Tab>('signin');
   const [email, setEmail] = useState('');
@@ -66,7 +69,11 @@ export default function AuthModal({
           onSignupSuccess();
         } else {
           await signin(email, password);
-          onClose();
+          if (onSigninSuccess) {
+            onSigninSuccess();
+          } else {
+            onClose();
+          }
         }
         resetForm();
       } catch (err) {
@@ -75,7 +82,7 @@ export default function AuthModal({
         setLoading(false);
       }
     },
-    [email, password, tab, signup, signin, onClose, onSignupSuccess, resetForm],
+    [email, password, tab, signup, signin, onClose, onSignupSuccess, onSigninSuccess, resetForm],
   );
 
   if (!isOpen) return null;

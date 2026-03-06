@@ -1,4 +1,5 @@
 import React, {useState, useCallback} from 'react';
+import {useAuth} from '@site/src/components/AuthProvider';
 
 /**
  * Props for the UrduTranslateButton component.
@@ -21,7 +22,7 @@ const API_URL =
   'http://localhost:8000';
 
 /**
- * "اردو میں پڑھیں" toggle button — visible to all users (no auth check).
+ * "اردو میں پڑھیں" toggle button — requires authentication.
  * Calls POST /api/translate with the current chapter slug.
  */
 export default function UrduTranslateButton({
@@ -29,16 +30,12 @@ export default function UrduTranslateButton({
   onTranslated,
   onShowEnglish,
   isUrduActive,
-}: UrduTranslateButtonProps): React.JSX.Element {
+}: UrduTranslateButtonProps): React.JSX.Element | null {
+  const {isAuthenticated} = useAuth();
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleClick = useCallback(async () => {
-    if (isUrduActive) {
-      onShowEnglish();
-      return;
-    }
-
+  const callTranslate = useCallback(async (forceRefresh = false) => {
     setLoading(true);
     setError(null);
 
@@ -46,8 +43,14 @@ export default function UrduTranslateButton({
       const response = await fetch(`${API_URL}/api/translate`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({chapter_slug: chapterSlug}),
+        credentials: 'include',
+        body: JSON.stringify({chapter_slug: chapterSlug, force_refresh: forceRefresh}),
       });
+
+      if (response.status === 401) {
+        setError('Please sign in to read in Urdu.');
+        return;
+      }
 
       if (response.status === 429) {
         setError('Translation limit reached. Please wait a moment.');
@@ -65,10 +68,27 @@ export default function UrduTranslateButton({
     } finally {
       setLoading(false);
     }
-  }, [chapterSlug, isUrduActive, onTranslated, onShowEnglish]);
+  }, [chapterSlug, onTranslated]);
+
+  const handleClick = useCallback(async () => {
+    if (isUrduActive) {
+      onShowEnglish();
+      return;
+    }
+    await callTranslate(false);
+  }, [isUrduActive, onShowEnglish, callTranslate]);
+
+  const handleRefresh = useCallback(async () => {
+    await callTranslate(true);
+  }, [callTranslate]);
+
+  // Only render when authenticated (backend requires JWT)
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
-    <div style={{marginBottom: '1rem'}}>
+    <div style={{marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap'}}>
       <button
         onClick={handleClick}
         disabled={loading}
@@ -81,11 +101,20 @@ export default function UrduTranslateButton({
             ? 'Read in English'
             : 'اردو میں پڑھیں'}
       </button>
+      {isUrduActive && !loading && (
+        <button
+          onClick={handleRefresh}
+          disabled={loading}
+          className="button button--outline button--secondary button--sm"
+          title="Re-translate this chapter (bypasses cache)"
+          type="button">
+          ↺ Refresh Translation
+        </button>
+      )}
       {error && (
         <span
           style={{
             color: 'var(--ifm-color-danger)',
-            marginLeft: '0.5rem',
             fontSize: '0.875rem',
           }}>
           {error}

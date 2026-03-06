@@ -121,7 +121,7 @@ class TestPersonalizeChapter:
             }
         )
 
-        gemini_response: str = (
+        llm_response: str = (
             "# Forward Kinematics\n\n"
             "Since you have student-level robotics experience, "
             "let me focus on the practical aspects.\n\n"
@@ -131,11 +131,9 @@ class TestPersonalizeChapter:
 
         with (
             patch("services.personalization_service.get_pool", return_value=mock_pool),
-            patch(
-                "services.personalization_service._call_gemini_personalize",
-                new_callable=AsyncMock,
-                return_value=gemini_response,
-            ),
+            patch("services.personalization_service.run_agent", new_callable=AsyncMock, return_value=llm_response),
+            patch("services.personalization_service.get_cached", new_callable=AsyncMock, return_value=None),
+            patch("services.personalization_service.set_cached", new_callable=AsyncMock),
             patch(
                 "builtins.open",
                 MagicMock(
@@ -162,8 +160,8 @@ class TestPersonalizeChapter:
         mock_pool = MagicMock()
         mock_pool.fetchrow = AsyncMock(return_value=dict(_FULL_PROFILE))
 
-        # Gemini returns personalized text with placeholder re-inserted
-        gemini_response: str = (
+        # LLM returns personalized text with placeholder re-inserted
+        llm_response: str = (
             "# Forward Kinematics\n\n"
             "Adapted prose.\n\n"
             "{{CODE_BLOCK_0}}\n\n"
@@ -172,11 +170,9 @@ class TestPersonalizeChapter:
 
         with (
             patch("services.personalization_service.get_pool", return_value=mock_pool),
-            patch(
-                "services.personalization_service._call_gemini_personalize",
-                new_callable=AsyncMock,
-                return_value=gemini_response,
-            ),
+            patch("services.personalization_service.run_agent", new_callable=AsyncMock, return_value=llm_response),
+            patch("services.personalization_service.get_cached", new_callable=AsyncMock, return_value=None),
+            patch("services.personalization_service.set_cached", new_callable=AsyncMock),
             patch(
                 "builtins.open",
                 MagicMock(
@@ -203,15 +199,13 @@ class TestPersonalizeChapter:
         # fetchrow returns None — no background saved
         mock_pool.fetchrow = AsyncMock(return_value=None)
 
-        gemini_response: str = "Beginner-friendly explanation.\n\n{{CODE_BLOCK_0}}"
+        llm_response: str = "Beginner-friendly explanation.\n\n{{CODE_BLOCK_0}}"
 
         with (
             patch("services.personalization_service.get_pool", return_value=mock_pool),
-            patch(
-                "services.personalization_service._call_gemini_personalize",
-                new_callable=AsyncMock,
-                return_value=gemini_response,
-            ),
+            patch("services.personalization_service.run_agent", new_callable=AsyncMock, return_value=llm_response),
+            patch("services.personalization_service.get_cached", new_callable=AsyncMock, return_value=None),
+            patch("services.personalization_service.set_cached", new_callable=AsyncMock),
             patch(
                 "builtins.open",
                 MagicMock(
