@@ -520,4 +520,4 @@ The frontend auto-deploys to GitHub Pages on every push to `main`:
 ---
 Watch the video below, click on the below tumbnail:
 
-[![Watch the video] (https://img.youtube.com/vi/KTBXAVfC5uo/0.jpg)](https://youtu.be/KTBXAVfC5uo)
+[![Watch the video](https://img.youtube.com/vi/KTBXAVfC5uo/0.jpg)](https://youtu.be/KTBXAVfC5uo)
