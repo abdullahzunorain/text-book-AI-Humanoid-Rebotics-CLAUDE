@@ -519,6 +519,4 @@ The frontend auto-deploys to GitHub Pages on every push to `main`:
 
 ---
 
-## License
-
-MIT
+![YOUTUBE](abdullahzunorain/text-book-AI-Humanoid-Rebotics-CLAUDE) 
